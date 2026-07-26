@@ -111,18 +111,29 @@ void Game::setupUi()
 
 
 
-    // --- تنظیم چینش دکمه‌های صفحه منو ---
+    // --- تنظیم ابعاد ثابت و چینش دکمه‌های صفحه منو ---
+    sf::Texture &startTexture = textureManager.get("button_start");
+    startButton.setTexture(&startTexture);
+    // استفاده از سایز ثابت به جای سایز عکس برای جلوگیری از بزرگ شدن بیش از حد
+    startButton.setSize(sf::Vector2f(220.f, 70.f)); 
     startButton.setPosition((window.getSize().x - startButton.getSize().x) / 2.f, 250.f);
     
-    // دکمه تنظیمات در منوی اصلی (قرارگیری مستقیم زیر دکمه استارت)
     sf::Texture &settingsTex = textureManager.get("button_settings");
-    settingsMenuButton.setSize(sf::Vector2f(static_cast<float>(settingsTex.getSize().x), static_cast<float>(settingsTex.getSize().y)));
     settingsMenuButton.setTexture(&settingsTex);
+    // سایز ثابت برای دکمه ستینگ
+    settingsMenuButton.setSize(sf::Vector2f(220.f, 70.f));
     settingsMenuButton.setPosition((window.getSize().x - settingsMenuButton.getSize().x) / 2.f, 340.f);
 
+    sf::Texture &restartTexture = textureManager.get("button_restart");
+    restartButton.setTexture(&restartTexture);
+    restartButton.setSize(sf::Vector2f(220.f, 70.f));
     restartButton.setPosition((window.getSize().x - restartButton.getSize().x) / 2.f, 420.f);
-    menuButton.setPosition((window.getSize().x - menuButton.getSize().x) / 2.f, 500.f);
 
+    sf::Texture &menuTexture = textureManager.get("button_menu");
+    menuButton.setTexture(&menuTexture);
+    menuButton.setSize(sf::Vector2f(220.f, 70.f));
+    menuButton.setPosition((window.getSize().x - menuButton.getSize().x) / 2.f, 500.f);
+    
     // --- تنظیم موقعیت متن‌های صفحه منو ---
     titleText.setPosition(window.getSize().x / 2.f, 100.f);
     menuHighScoreText.setPosition(window.getSize().x / 2.f, 170.f);
