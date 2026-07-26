@@ -22,6 +22,7 @@ Game::Game()
         textureManager.load("platform", "assets/normal_platform.png");
         textureManager.load("platform_broken", "assets/broken_platform.png");
         textureManager.load("platform_moving", "assets/moving_platform.png");
+        textureManager.load("spring", "assets/spring_sprite.png");
         textureManager.load("button_start", "assets/start_button.png");
         textureManager.load("button_restart", "assets/restart_button.png");
         textureManager.load("button_menu", "assets/menu_button.png");

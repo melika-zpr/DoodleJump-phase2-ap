@@ -26,6 +26,7 @@ public:
     void update(float deltaTime, float windowWidth);
     void draw(sf::RenderWindow& window);
     void jump();
+    void springJump();
     
     // دکمه‌های دسترسی (Getters / Setters)
     sf::Vector2f getPosition() const;

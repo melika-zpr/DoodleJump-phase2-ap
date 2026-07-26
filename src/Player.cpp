@@ -76,6 +76,7 @@ void Player::draw(sf::RenderWindow &window)
 }
 
 void Player::jump() { velocity.y = jumpForce; }
+void Player::springJump() { velocity.y = jumpForce * 1.7f; }
 sf::Vector2f Player::getPosition() const { return position; }
 sf::Vector2f Player::getVelocity() const { return velocity; }
 void Player::setVelocity(sf::Vector2f vel) { velocity = vel; }

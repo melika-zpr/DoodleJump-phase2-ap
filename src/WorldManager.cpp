@@ -41,6 +41,15 @@ static Platform::PlatformType choosePlatformType(std::mt19937 &gen, Platform::Pl
     return type;
 }
 
+static bool chooseHasSpring(std::mt19937 &gen, Platform::PlatformType type) {
+    if (type == Platform::PlatformType::Broken) {
+        return false;
+    }
+
+    std::uniform_int_distribution<int> springDist(0, 4);
+    return springDist(gen) == 0;
+}
+
 static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX, float maxX) {
     // Choose the next platform X position relative to the previous one.
     std::uniform_real_distribution<float> offset(-60.f, 60.f);
@@ -51,6 +60,7 @@ static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX,
 void WorldManager::spawnInitialPlatforms() {
     // Create the first platform under the player, then add more above it.
     auto &normalTex = textureManager.get("platform");
+    auto &springTex = textureManager.get("spring");
     platforms.push_back(Platform(normalTex, sf::Vector2f(200.f, 750.f), Platform::PlatformType::Normal));
 
     std::uniform_real_distribution<float> disXOffset(-80.f, 80.f);
@@ -79,7 +89,8 @@ void WorldManager::spawnInitialPlatforms() {
         lastPlatformType = type;
 
         sf::Texture &texture = getTextureForType(textureManager, type);
-        platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type));
+        bool hasSpring = chooseHasSpring(gen, type);
+        platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type, &springTex, hasSpring));
     }
 }
 
@@ -95,7 +106,14 @@ float WorldManager::update(Player& player, float deltaTime) {
             }
 
             sf::FloatRect platBounds = plat.getBounds();
-            if (playerBounds.intersects(platBounds)) {
+            sf::FloatRect springBounds = plat.getSpringBounds();
+            if (plat.containsSpring() && playerBounds.intersects(springBounds)) {
+                if (playerBottom < springBounds.top + springBounds.height) {
+                    plat.activateSpring();
+                    player.springJump();
+                    break;
+                }
+            } else if (playerBounds.intersects(platBounds)) {
                 if (playerBottom < platBounds.top + platBounds.height) {
                     if (plat.getType() == Platform::PlatformType::Broken) {
                         plat.breakPlatform();
@@ -146,7 +164,9 @@ float WorldManager::update(Player& player, float deltaTime) {
                 lastPlatformType = type;
 
                 sf::Texture &texture = getTextureForType(textureManager, type);
-                plat.reset(texture, type, sf::Vector2f(nextX, newY));
+                sf::Texture &springTex = textureManager.get("spring");
+                bool hasSpring = chooseHasSpring(gen, type);
+                plat.reset(texture, type, sf::Vector2f(nextX, newY), &springTex, hasSpring);
                 minY = newY;
             }
         }
