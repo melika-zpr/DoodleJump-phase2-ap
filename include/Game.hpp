@@ -4,10 +4,12 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <string>
+#include <SFML/Audio.hpp>
 #include "ResourceManager.hpp"
 #include "Player.hpp"
 #include "WorldManager.hpp"
 #include "Settings.hpp"
+
 
 class Game
 {
@@ -72,6 +74,7 @@ private:
     sf::Text menuHighScoreText;
     sf::Text instructionText;
     sf::Text gameOverText;
+    
 
     sf::RectangleShape startButton;   // Texture button for starting the game
     sf::RectangleShape restartButton; // Texture button for restarting after game over
@@ -82,6 +85,15 @@ private:
     static constexpr const char *highScoreFilename = "highscore.txt"; // File where high score is persisted
 
     GameState gameState; // Current screen state: Menu, Playing, or GameOver
+
+    ResourceManager<sf::SoundBuffer> soundManager; // برای افکت‌های صوتی کوتاه
+    sf::Music backgroundMusic;                     // برای موسیقی پس‌زمینه (حجم بالا)
+    
+    sf::Sound jumpSound;
+    sf::Sound shootSound;
+    sf::Sound gameOverSound;
+
+    void updateAudioVolume(); // متد جدید برای اعمال ولوم تنظیمات روی صداها
 
     void processEvents();         // Read window events and player input
     void update(float deltaTime); // Advance game state and handle scrolling

@@ -9,7 +9,7 @@ ifeq ($(OS),Windows_NT)
     SFML_DIR = SFML
     INCFLAGS = -Iinclude -I$(SFML_DIR)/include
     LDFLAGS = -L$(SFML_DIR)/lib
-    LIBFLAGS = -lsfml-graphics -lsfml-window -lsfml-system
+    LIBFLAGS = -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
     EXE_EXT = .exe
     
     # دستورات ساخت پوشه (بدون ارور در صورت وجود داشتن)
@@ -28,8 +28,8 @@ else
     else ifneq ($(wildcard /usr/local/opt/sfml@2/lib/pkgconfig),)
         SFML_PKG_CONFIG_PATH = /usr/local/opt/sfml@2/lib/pkgconfig
     endif
-    SFML_CFLAGS = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --cflags sfml-graphics sfml-window sfml-system 2>/dev/null)
-    SFML_LIBS   = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --libs sfml-graphics sfml-window sfml-system 2>/dev/null)
+    SFML_CFLAGS = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --cflags sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
+    SFML_LIBS   = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --libs sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
     
     INCFLAGS = -Iinclude $(SFML_CFLAGS)
     LDFLAGS = 

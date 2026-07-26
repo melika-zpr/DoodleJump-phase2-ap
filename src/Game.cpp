@@ -4,7 +4,7 @@
 #include <vector>
 
 Game::Game()
-    : window(sf::VideoMode(500, 800), "Doodle Jump - Phase 1", sf::Style::Titlebar | sf::Style::Close),
+    : window(sf::VideoMode(500, 800), "Doodle Jump - Phase 2", sf::Style::Titlebar | sf::Style::Close),
       gameState(GameState::Menu)
 {
     window.setFramerateLimit(60);
@@ -29,6 +29,26 @@ Game::Game()
         textureManager.load("button_settings", "assets/Settings_button.png");
         isDraggingSlider = false;
         textureManager.load("button_back", "assets/back_button.png");
+
+        // لود کردن افکت‌های صوتی
+        soundManager.load("jump", "sounds/Jumping_Sound.wav");
+        soundManager.load("shoot", "sounds/Shooting_Sound.wav");
+        soundManager.load("gameover", "sounds/Loosing_Sound.wav");
+
+        jumpSound.setBuffer(soundManager.get("jump"));
+        shootSound.setBuffer(soundManager.get("shoot"));
+        gameOverSound.setBuffer(soundManager.get("gameover"));
+
+        // لود و پخش موسیقی پس‌زمینه
+        if (!backgroundMusic.openFromFile("sounds/MainMenu_Song.flac"))
+        {
+            throw std::runtime_error("Failed to load MainMenu_Song.flac");
+        }
+        backgroundMusic.setLoop(true); // تکرار موسیقی
+        backgroundMusic.play();
+
+        // اعمال ولوم اولیه از روی فایل تنظیمات ذخیره شده
+        updateAudioVolume();
 
         setupUi();
         resetGame();
@@ -108,16 +128,13 @@ void Game::setupUi()
         menuButton.setFillColor(sf::Color::White);
     }
 
-
-
-
     // --- تنظیم ابعاد ثابت و چینش دکمه‌های صفحه منو ---
     sf::Texture &startTexture = textureManager.get("button_start");
     startButton.setTexture(&startTexture);
     // استفاده از سایز ثابت به جای سایز عکس برای جلوگیری از بزرگ شدن بیش از حد
-    startButton.setSize(sf::Vector2f(220.f, 70.f)); 
+    startButton.setSize(sf::Vector2f(220.f, 70.f));
     startButton.setPosition((window.getSize().x - startButton.getSize().x) / 2.f, 250.f);
-    
+
     sf::Texture &settingsTex = textureManager.get("button_settings");
     settingsMenuButton.setTexture(&settingsTex);
     // سایز ثابت برای دکمه ستینگ
@@ -133,17 +150,24 @@ void Game::setupUi()
     menuButton.setTexture(&menuTexture);
     menuButton.setSize(sf::Vector2f(220.f, 70.f));
     menuButton.setPosition((window.getSize().x - menuButton.getSize().x) / 2.f, 500.f);
-    
+
     // --- تنظیم موقعیت متن‌های صفحه منو ---
     titleText.setPosition(window.getSize().x / 2.f, 100.f);
     menuHighScoreText.setPosition(window.getSize().x / 2.f, 170.f);
-    
+
     // دریافت درجه سختی ذخیره شده برای نمایش اولیه صحیح
     std::string diffStr;
-    switch (gameSettings.getDifficulty()) {
-        case Difficulty::Easy: diffStr = "EASY"; break;
-        case Difficulty::Medium: diffStr = "MEDIUM"; break;
-        case Difficulty::Hard: diffStr = "HARD"; break;
+    switch (gameSettings.getDifficulty())
+    {
+    case Difficulty::Easy:
+        diffStr = "EASY";
+        break;
+    case Difficulty::Medium:
+        diffStr = "MEDIUM";
+        break;
+    case Difficulty::Hard:
+        diffStr = "HARD";
+        break;
     }
 
     // راه‌اندازی و موقعیت‌دهی متن Mode با توجه به تنظیمات ذخیره شده
@@ -162,8 +186,6 @@ void Game::setupUi()
     scoreText.setPosition(20.f, 20.f);
     highScoreText.setOrigin(0.f, 0.f);
     highScoreText.setPosition(20.f, 50.f);
-
-
 
     // رنگ‌های اصلی رابط کاربری
     sf::Color darkBlue(17, 52, 84);
@@ -214,11 +236,11 @@ void Game::setupUi()
     setupDifficultyButton(mediumButton, mediumText, "MEDIUM", 250.f);
     setupDifficultyButton(hardButton, hardText, "HARD", 380.f);
 
-   // ساخت دکمه برگشت با استفاده از تصویر تکسچر و سایز ثابت
+    // ساخت دکمه برگشت با استفاده از تصویر تکسچر و سایز ثابت
     sf::Texture &backTex = textureManager.get("button_back");
     backButton.setTexture(&backTex);
     // استفاده از سایز ثابت برای جلوگیری از اشغال شدن نصف صفحه!
-    backButton.setSize(sf::Vector2f(200.f, 65.f)); 
+    backButton.setSize(sf::Vector2f(200.f, 65.f));
     backButton.setFillColor(sf::Color::White);
     backButton.setOrigin(backButton.getSize().x / 2.f, backButton.getSize().y / 2.f);
     backButton.setPosition(window.getSize().x / 2.f, 650.f);
@@ -284,6 +306,7 @@ void Game::updateOverlayTexts()
 void Game::startGame()
 {
     gameState = GameState::Playing;
+    backgroundMusic.stop();
     resetGame();
 }
 
@@ -313,6 +336,11 @@ void Game::handleButtonClick(const sf::Vector2i &mousePosition)
         }
         else if (menuButton.getGlobalBounds().contains(clickPos))
         {
+            // برای جلوگیری از تداخل اگر در حال پخش بود دوباره از اول شروع نشود
+            if (backgroundMusic.getStatus() != sf::SoundSource::Playing)
+            {
+                backgroundMusic.play();
+            }
             gameState = GameState::Menu;
         }
     }
@@ -405,13 +433,15 @@ void Game::processEvents()
             volumeValueText.setString(std::to_string(newVolume) + "%");
             sf::FloatRect bounds = volumeValueText.getLocalBounds();
             volumeValueText.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
-            // در فاز بعدی که سیستم صوتی را اضافه کردیم، اینجا باید متد تغییر ولوم صدا را هم صدا بزنید
+
+            updateAudioVolume(); // تغییر زنده صدای بازی هنگام کشیدن اسلایدر
         }
 
         if (event.type == sf::Event::KeyPressed)
         {
             if ((event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Space) && gameState != GameState::Playing)
             {
+                backgroundMusic.stop();
                 startGame();
             }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
@@ -420,6 +450,11 @@ void Game::processEvents()
             }
             else if (event.key.code == sf::Keyboard::Escape && gameState == GameState::GameOver)
             {
+
+                if (backgroundMusic.getStatus() != sf::SoundSource::Playing)
+                {
+                    backgroundMusic.play();
+                }
                 gameState = GameState::Menu;
             }
         }
@@ -555,4 +590,13 @@ void Game::render()
 
     drawOverlay();
     window.display();
+}
+
+void Game::updateAudioVolume()
+{
+    float vol = static_cast<float>(gameSettings.getVolume());
+    backgroundMusic.setVolume(vol);
+    jumpSound.setVolume(vol);
+    shootSound.setVolume(vol);
+    gameOverSound.setVolume(vol);
 }
