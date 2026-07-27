@@ -301,7 +301,7 @@ void Game::resetGame()
     sf::Texture &texRight = textureManager.get("player_right");
 
     player = std::make_unique<Player>(texLeft, texRight);
-    worldManager = std::make_unique<WorldManager>(textureManager);
+    worldManager = std::make_unique<WorldManager>(textureManager, gameSettings.getDifficulty());
     updateOverlayTexts();
 }
 
@@ -460,6 +460,7 @@ void Game::update(float deltaTime)
         score += static_cast<int>(scrollAmount);
         if (score > highScore)
         {
+            highScore = score; // <--- این خط کلیدی جا افتاده بود!
             highScores[static_cast<int>(gameSettings.getDifficulty())] = highScore;
             saveHighScore(); // Persist new record immediately.
         }
