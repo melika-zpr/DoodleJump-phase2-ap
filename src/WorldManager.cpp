@@ -6,12 +6,12 @@
 #include <algorithm>
 
 WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
-    : textureManager(texMgr), 
+    : gameOver(false),
+    textureManager(texMgr), 
     gen(std::random_device{}()), 
+    difficulty(diff),
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    difficulty(diff),
-    gameOver(false),
     totalScrolledDistance(0.f) // مقداردهی اولیه مسافت
 {
     monsterTex1 = &texMgr.get("monster1");
