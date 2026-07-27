@@ -18,8 +18,13 @@ Monster::Monster(sf::Texture& texture, float startX, float startY, int health)
 Monster::Monster(sf::Texture& tex1, sf::Texture& tex2, sf::Vector2f pos, int health) 
     : hp(health) 
 {
-    // استفاده از اولین تکسچر به عنوان پیش‌فرض (می‌توانید مطابق منطق بازی تغییر دهید)
-    sprite.setTexture(tex1); 
+    // انتخاب تصادفی با شانس ۵۰-۵۰ بین هیولای سبز (tex1) و آبی (tex2)
+    if (rand() % 2 == 0) {
+        sprite.setTexture(tex1);
+    } else {
+        sprite.setTexture(tex2);
+    }
+
     sf::FloatRect bounds = sprite.getLocalBounds();
     sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
     sprite.setPosition(pos);

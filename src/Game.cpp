@@ -498,6 +498,25 @@ void Game::update(float deltaTime)
     player->update(deltaTime, 500.f);
     float scrollAmount = worldManager->update(*player, deltaTime);
 
+    // --- اضافه شدن این بخش: بررسی باخت فوری بر اثر برخورد با مانستر ---
+    if (worldManager->isGameOver()) 
+    {
+        if (gameState != GameState::GameOver)
+        { 
+            gameState = GameState::GameOver;
+            
+            // تنظیم جایگاه متن‌های امتیاز برای وسط صفحه در زمان باخت
+            sf::FloatRect scoreBounds = scoreText.getLocalBounds();
+            scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
+            scoreText.setPosition(window.getSize().x / 2.f, 250.f);
+
+            sf::FloatRect hsBounds = highScoreText.getLocalBounds();
+            highScoreText.setOrigin(hsBounds.width / 2.f, hsBounds.height / 2.f);
+            highScoreText.setPosition(window.getSize().x / 2.f, 290.f);
+        }
+        return; // توقف ادامه آپدیت برای جلوگیری از باگ‌های احتمالی
+    }
+
     // Increase score only when the world scrolls upward.
     if (scrollAmount > 0.f)
     {
