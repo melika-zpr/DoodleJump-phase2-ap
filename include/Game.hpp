@@ -23,6 +23,7 @@ private:
         HoleSuction
     };
 
+    float shootCooldown = 0.f;
     Settings gameSettings; 
     int highScores[3];     
 

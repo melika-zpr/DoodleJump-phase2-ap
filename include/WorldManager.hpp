@@ -10,11 +10,12 @@
 #include "Settings.hpp"
 #include "Monster.hpp"
 #include "Hole.hpp"
+#include "Bullet.hpp"
 
 class WorldManager
 {
 private:
-    // Monsters
+    std::vector<Bullet> bullets;
     std::vector<Monster> monsters;
     sf::Texture* monsterTex1;
     sf::Texture* monsterTex2;
@@ -29,7 +30,6 @@ private:
     bool isPositionOverlappingWithAnyObject(sf::Vector2f pos, float width, float height) const;
     void spawnHoleNearPlatform(const Platform& platform, float windowWidth);
     float getSpeedMultiplier() const;
-
 
     std::vector<Platform> platforms;
 
@@ -49,14 +49,18 @@ public:
     WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff);
     void spawnInitialPlatforms();
     bool checkHoleCollision(Player& player, sf::Vector2f& outHoleCenter);
+    
     // بازیکن به عنوان ورودی داده می‌شود تا برخوردها و دوربین محاسبه شود
     float update(Player &player, float deltaTime);
     void draw(sf::RenderWindow &window);
     
+    void updateBullets(float deltaTime);
+    void renderBullets(sf::RenderWindow& window);
+    
     // تابع مشترک برای بررسی تداخل (با حاشیه امن پیش‌فرض 30 پیکسل)
     bool isAreaClear(const sf::FloatRect& area, float padding = 30.f) const;
     
-    // تابعی که Game.cpp برای شلیک کردن صدا می‌زند
+    // تابعی که Game.cpp برای شلیک کردن صدا و ساخت گلوله می‌زند
     void spawnBullet(sf::Vector2f startPosition);
 };
 

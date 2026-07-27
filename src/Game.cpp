@@ -5,7 +5,8 @@
 
 Game::Game()
     : window(sf::VideoMode(500, 800), "Doodle Jump - Phase 2", sf::Style::Titlebar | sf::Style::Close),
-      gameState(GameState::Menu)
+      gameState(GameState::Menu),
+      shootCooldown(0.f)
 {
     window.setFramerateLimit(60);
 
@@ -287,6 +288,7 @@ void Game::startGame()
 void Game::resetGame()
 {
     score = 0;
+    shootCooldown = 0.f;
     sf::Texture &texLeft = textureManager.get("player_left");
     sf::Texture &texRight = textureManager.get("player_right");
     sf::Texture &texShootBody = textureManager.get("player_shoot_body");
@@ -413,13 +415,6 @@ void Game::processEvents()
                 AudioManager::getInstance().stopMusic();
                 startGame();
             }
-            else if (event.key.code == sf::Keyboard::Space && gameState == GameState::Playing)
-            {
-                player->triggerShoot();
-                sf::Vector2f shootPos = player->getPosition();
-                shootPos.y -= 20.f; 
-                worldManager->spawnBullet(shootPos);
-            }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
             {
                 startGame();
@@ -440,7 +435,7 @@ void Game::processEvents()
 
 void Game::update(float deltaTime)
 {
-    // مدیریت حالت مکش توسط سیاه‌چاله[cite: 10]
+    // مدیریت حالت مکش توسط سیاه‌چاله
     if (gameState == GameState::HoleSuction && player)
     {
         bool suctionFinished = false;
@@ -466,9 +461,38 @@ void Game::update(float deltaTime)
         return;
     }
 
+    // بررسی شلیک پیوسته با نگه‌داشتن کلید Space و نرخ آتش وابسته به دشواری
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+    {
+        player->triggerShoot();
+
+        shootCooldown -= deltaTime;
+        if (shootCooldown <= 0.f)
+        {
+            sf::Vector2f shootPos = player->getPosition();
+            shootPos.x += player->getBounds().width / 2.f; 
+            shootPos.y -= 10.f; 
+            worldManager->spawnBullet(shootPos);
+
+            // نرخ آتش: در حالت آسان سریع‌تر و در متوسط/سخت کندتر
+            if (gameSettings.getDifficulty() == Difficulty::Easy)
+            {
+                shootCooldown = 0.25f; 
+            }
+            else
+            {
+                shootCooldown = 0.5f;  
+            }
+        }
+    }
+    else
+    {
+        shootCooldown = 0.f;
+    }
+
     player->update(deltaTime, 500.f);
 
-    // بررسی برخورد با سیاه‌چاله[cite: 10]
+    // بررسی برخورد با سیاه‌چاله
     if (worldManager->checkHoleCollision(*player, holeCenterForSuction))
     {
         gameState = GameState::HoleSuction;

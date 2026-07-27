@@ -7,12 +7,13 @@
 
 WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
     : textureManager(texMgr), 
-    gen(std::random_device{}()), 
-    lastPlatformX(200.f), 
-    lastPlatformType(Platform::PlatformType::Normal),
-    difficulty(diff),
-    gameOver(false),
-    totalScrolledDistance(0.f)
+      gen(std::random_device{}()), 
+      difficulty(diff),
+      lastPlatformX(200.f), 
+      lastPlatformType(Platform::PlatformType::Normal),
+      gameOver(false),
+      totalScrolledDistance(0.f),
+      previousPlayerBottom(0.f)
 {
     monsterTex1 = &texMgr.get("monster1");
     monsterTex2 = &texMgr.get("monster2");
@@ -44,6 +45,7 @@ void WorldManager::spawnMonsterNearPlatform(const Platform& platform, float wind
         return; 
     }
 
+    // مقدار سلامتی اولیه بر اساس سطح دشواری (مطابق مستندات فاز دوم)
     int health = 1;
     if (difficulty == Difficulty::Medium) health = 2;
     else if (difficulty == Difficulty::Hard) health = 3;
@@ -207,7 +209,6 @@ void WorldManager::spawnInitialPlatforms()
             spawnMonsterNearPlatform(platforms.back(), 500.f);
         }
 
-        // ساخت سیاه‌چاله در پلتفرم‌های اولیه
         spawnHoleNearPlatform(platforms.back(), 500.f);
     }
 }
@@ -215,6 +216,9 @@ void WorldManager::spawnInitialPlatforms()
 float WorldManager::update(Player &player, float deltaTime)
 {
     if (gameOver) return 0.f;
+
+    // ۱. به‌روزرسانی و بررسی برخورد گلوله‌ها با هیولاها
+    updateBullets(deltaTime);
 
     for (auto& mon : monsters) {
         mon.update(deltaTime, 500.f);
@@ -227,6 +231,7 @@ float WorldManager::update(Player &player, float deltaTime)
     sf::FloatRect playerBounds = player.getBounds();
     float playerBottom = playerBounds.top + playerBounds.height;
 
+    // ۲. بررسی برخورد بازیکن با هیولاها
     for (auto& mon : monsters) {
         if (!mon.isActive()) continue;
         
@@ -238,7 +243,7 @@ float WorldManager::update(Player &player, float deltaTime)
             if (fallingDown && landedFromAbove) {
                 player.springJump(); 
                 AudioManager::getInstance().playJump();
-                mon.setActive(false); 
+                mon.setActive(false); // نابودی هیولا با پرش از بالا
                 break;
             } else {
                 gameOver = true;
@@ -313,7 +318,6 @@ float WorldManager::update(Player &player, float deltaTime)
             mon.setPosition(pos);
         }
 
-        // اسکرول سیاه‌چاله‌ها همراه با صفحه
         for (auto &hole : holes) {
             sf::Vector2f pos = hole.getPosition();
             pos.y += diff;
@@ -355,7 +359,6 @@ float WorldManager::update(Player &player, float deltaTime)
                     spawnMonsterNearPlatform(plat, 500.f);
                 }
 
-                // ساخت سیاه‌چاله هنگام بازیافت پلتفرم‌ها در حالت Hard
                 spawnHoleNearPlatform(plat, 500.f);
             }
         }
@@ -373,6 +376,7 @@ float WorldManager::update(Player &player, float deltaTime)
         totalScrolledDistance += scrollAmount;
     }
 
+    // پاکسازی هیولاهای مرده یا خارج شده از صفحه
     for (auto it = monsters.begin(); it != monsters.end();) {
         if (!it->isActive() || it->getPosition().y > 900.f) {
             it = monsters.erase(it);
@@ -381,7 +385,6 @@ float WorldManager::update(Player &player, float deltaTime)
         }
     }
 
-    // حذف سیاه‌چاله‌های خارج شده از صفحه
     for (auto it = holes.begin(); it != holes.end();) {
         if (!it->isActive() || it->getPosition().y > 900.f) {
             it = holes.erase(it);
@@ -390,6 +393,7 @@ float WorldManager::update(Player &player, float deltaTime)
         }
     }
 
+    // ذخیره موقعیت پایینی بازیکن برای استفاده در فریم بعدی
     previousPlayerBottom = player.getBounds().top + player.getBounds().height;
     return scrollAmount;
 }
@@ -407,12 +411,14 @@ void WorldManager::draw(sf::RenderWindow &window)
         }
     }
 
-    // رسم سیاه‌چاله‌ها روی صفحه
     for (auto &hole : holes) {
         if (hole.isActive()) {
             hole.draw(window);
         }
     }
+
+    // رسم گلوله‌ها روی صفحه
+    renderBullets(window);
 }
 
 bool WorldManager::isAreaClear(const sf::FloatRect& area, float padding) const {
@@ -443,10 +449,6 @@ bool WorldManager::isAreaClear(const sf::FloatRect& area, float padding) const {
     return true; 
 }
 
-void WorldManager::spawnBullet(sf::Vector2f startPosition) {
-    AudioManager::getInstance().playShoot();
-}
-
 bool WorldManager::checkHoleCollision(Player& player, sf::Vector2f& outHoleCenter) {
     sf::FloatRect playerBounds = player.getBounds();
     for (auto& hole : holes) {
@@ -456,4 +458,39 @@ bool WorldManager::checkHoleCollision(Player& player, sf::Vector2f& outHoleCente
         }
     }
     return false;
+}
+
+void WorldManager::spawnBullet(sf::Vector2f startPosition) {
+    AudioManager::getInstance().playShoot();
+    sf::Vector2f bulletVelocity(0.f, -600.f);
+    bullets.emplace_back(startPosition, bulletVelocity);
+}
+
+void WorldManager::updateBullets(float deltaTime) {
+    for (auto& bullet : bullets) {
+        if (!bullet.isActive()) continue;
+
+        bullet.update(deltaTime);
+
+        for (auto& monster : monsters) {
+            // بررسی برخورد گلوله فعال با هیولای فعال
+            if (monster.isActive() && bullet.getBounds().intersects(monster.getBounds())) {
+                bullet.setActive(false); // غیرفعال کردن گلوله
+                monster.takeDamage(1);   // کاهش یک واحد از جان هیولا (طبق مستندات)
+                break;
+            }
+        }
+    }
+
+    // پاکسازی گلوله‌های غیرفعال یا خارج شده از صفحه
+    bullets.erase(
+        std::remove_if(bullets.begin(), bullets.end(), [](const Bullet& b) { return !b.isActive(); }),
+        bullets.end()
+    );
+}
+
+void WorldManager::renderBullets(sf::RenderWindow& window) {
+    for (auto& bullet : bullets) {
+        bullet.render(window);
+    }
 }

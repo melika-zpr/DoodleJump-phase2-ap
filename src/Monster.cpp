@@ -3,7 +3,7 @@
 
 // سازنده اول
 Monster::Monster(sf::Texture& texture, float startX, float startY, int health) 
-    : hp(health) 
+    : hp(health), active(true) 
 {
     sprite.setTexture(texture);
     sf::FloatRect bounds = sprite.getLocalBounds();
@@ -14,11 +14,10 @@ Monster::Monster(sf::Texture& texture, float startX, float startY, int health)
     if (rand() % 2 == 0) speed = -speed;
 }
 
-// سازنده دوم (اضافه شده)[cite: 13]
+// سازنده دوم
 Monster::Monster(sf::Texture& tex1, sf::Texture& tex2, sf::Vector2f pos, int health) 
-    : hp(health) 
+    : hp(health), active(true) 
 {
-    // استفاده از اولین تکسچر به عنوان پیش‌فرض (می‌توانید مطابق منطق بازی تغییر دهید)
     sprite.setTexture(tex1); 
     sf::FloatRect bounds = sprite.getLocalBounds();
     sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
@@ -53,6 +52,9 @@ sf::FloatRect Monster::getBounds() const {
 
 void Monster::takeDamage(int damage) {
     hp -= damage;
+    if (hp <= 0) {
+        active = false;
+    }
 }
 
 bool Monster::isDead() const {
@@ -63,13 +65,12 @@ bool Monster::isOffScreen() const {
     return sprite.getPosition().y > 900.f; 
 }
 
-// پیاده‌سازی متدهای جدید و گمشده[cite: 13]
 void Monster::setSpeedMultiplier(float multiplier) {
     speed = baseSpeed * multiplier;
 }
 
 bool Monster::isActive() const {
-    return active;
+    return active && hp > 0;
 }
 
 void Monster::setActive(bool activeState) {
