@@ -3,7 +3,7 @@
 
 // سازنده اول
 Monster::Monster(sf::Texture &texture, float startX, float startY, int health)
-    : hp(health)
+    : hp(health), active(true)
 {
     isSplitMonster = false; 
 
@@ -18,7 +18,7 @@ Monster::Monster(sf::Texture &texture, float startX, float startY, int health)
 }
 
 Monster::Monster(sf::Texture &tex1, sf::Texture &tex2, sf::Vector2f pos, int health)
-    : hp(health)
+    : hp(health), active(true)
 {
     speed = baseSpeed;
 
@@ -120,7 +120,7 @@ bool Monster::isOffScreen() const
     return sprite.getPosition().y > 900.f;
 }
 
-// پیاده‌سازی متدهای جدید و گمشده[cite: 13]
+// پیاده‌سازی متدهای جدید و گمشده
 void Monster::setSpeedMultiplier(float multiplier)
 {
     speed = baseSpeed * multiplier;
