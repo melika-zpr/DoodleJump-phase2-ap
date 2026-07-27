@@ -6,8 +6,11 @@
 #include <algorithm>
 
 WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
-    : textureManager(texMgr), gen(std::random_device{}()), lastPlatformX(200.f), lastPlatformType(Platform::PlatformType::Normal)
-{
+    : textureManager(texMgr), 
+    gen(std::random_device{}()), 
+    lastPlatformX(200.f), 
+    lastPlatformType(Platform::PlatformType::Normal),
+    difficulty(diff) {
     // Initialize the world with safe starting platform positions.
     spawnInitialPlatforms();
 }
@@ -87,6 +90,13 @@ void WorldManager::spawnInitialPlatforms()
     std::vector<float> occupiedYs;
     occupiedYs.push_back(currentY);
 
+    float speedMultiplier = 1.0f;
+    if (difficulty == Difficulty::Medium) {
+        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+    } else if (difficulty == Difficulty::Hard) {
+        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+    }
+
     for (int i = 0; i < 9; ++i)
     {
         float nextY;
@@ -108,6 +118,8 @@ void WorldManager::spawnInitialPlatforms()
         sf::Texture &texture = getTextureForType(textureManager, type);
         bool hasSpring = chooseHasSpring(gen, type);
         platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type, &springTex, hasSpring));
+        // <--- اضافه کردن این خط برای اعمال سرعت
+        platforms.back().setSpeedMultiplier(speedMultiplier);
     }
 }
 
@@ -180,6 +192,15 @@ float WorldManager::update(Player &player, float deltaTime)
             plat.update(deltaTime, 500.f);
         }
 
+        // محاسبه ضریب سرعت
+        float speedMultiplier = 1.0f;
+        if (difficulty == Difficulty::Medium) {
+        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+        } else if (difficulty == Difficulty::Hard) {
+        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+        }
+
+        
         // Recycle platforms that fall below the bottom of the screen.
         for (auto &plat : platforms)
         {
@@ -202,6 +223,8 @@ float WorldManager::update(Player &player, float deltaTime)
                 sf::Texture &springTex = textureManager.get("spring");
                 bool hasSpring = chooseHasSpring(gen, type);
                 plat.reset(texture, type, sf::Vector2f(nextX, newY), &springTex, hasSpring);
+                // <--- اضافه کردن این خط برای اعمال سرعت روی سکوهای جدیدی که از بالا وارد می‌شوند
+                plat.setSpeedMultiplier(speedMultiplier);
                 minY = newY;
             }
         }

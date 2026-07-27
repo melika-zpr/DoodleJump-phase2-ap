@@ -43,6 +43,9 @@ public:
     void activateSpring();
     PlatformType getType() const;
     bool containsSpring() const;
+
+    // متد جدید برای تنظیم سرعت پلتفرم
+    void setSpeedMultiplier(float multiplier);
 };
 
 #endif
