@@ -30,25 +30,9 @@ Game::Game()
         isDraggingSlider = false;
         textureManager.load("button_back", "assets/back_button.png");
 
-        // لود کردن افکت‌های صوتی
-        soundManager.load("jump", "sounds/Jumping_Sound.wav");
-        soundManager.load("shoot", "sounds/Shooting_Sound.wav");
-        soundManager.load("gameover", "sounds/Loosing_Sound.wav");
-
-        jumpSound.setBuffer(soundManager.get("jump"));
-        shootSound.setBuffer(soundManager.get("shoot"));
-        gameOverSound.setBuffer(soundManager.get("gameover"));
-
-        // لود و پخش موسیقی پس‌زمینه
-        if (!backgroundMusic.openFromFile("sounds/MainMenu_Song.flac"))
-        {
-            throw std::runtime_error("Failed to load MainMenu_Song.flac");
-        }
-        backgroundMusic.setLoop(true); // تکرار موسیقی
-        backgroundMusic.play();
-
-        // اعمال ولوم اولیه از روی فایل تنظیمات ذخیره شده
+        AudioManager::getInstance().init();
         updateAudioVolume();
+        AudioManager::getInstance().playMusic();
 
         setupUi();
         resetGame();
@@ -306,7 +290,7 @@ void Game::updateOverlayTexts()
 void Game::startGame()
 {
     gameState = GameState::Playing;
-    backgroundMusic.stop();
+    AudioManager::getInstance().stopMusic();
     resetGame();
 }
 
@@ -336,11 +320,7 @@ void Game::handleButtonClick(const sf::Vector2i &mousePosition)
         }
         else if (menuButton.getGlobalBounds().contains(clickPos))
         {
-            // برای جلوگیری از تداخل اگر در حال پخش بود دوباره از اول شروع نشود
-            if (backgroundMusic.getStatus() != sf::SoundSource::Playing)
-            {
-                backgroundMusic.play();
-            }
+            AudioManager::getInstance().playMusic();
             gameState = GameState::Menu;
         }
     }
@@ -441,7 +421,7 @@ void Game::processEvents()
         {
             if ((event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Space) && gameState != GameState::Playing)
             {
-                backgroundMusic.stop();
+                AudioManager::getInstance().stopMusic();
                 startGame();
             }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
@@ -451,10 +431,7 @@ void Game::processEvents()
             else if (event.key.code == sf::Keyboard::Escape && gameState == GameState::GameOver)
             {
 
-                if (backgroundMusic.getStatus() != sf::SoundSource::Playing)
-                {
-                    backgroundMusic.play();
-                }
+                AudioManager::getInstance().playMusic();
                 gameState = GameState::Menu;
             }
         }
@@ -492,7 +469,11 @@ void Game::update(float deltaTime)
     // End the game if the player falls too far below the screen.
     if (player->getPosition().y > 900.f)
     {
-        gameState = GameState::GameOver;
+        if (gameState != GameState::GameOver)
+        { // برای اینکه صدا فقط یکبار پخش شود
+            gameState = GameState::GameOver;
+            AudioManager::getInstance().playGameOver();
+        }
     }
 }
 
@@ -594,9 +575,5 @@ void Game::render()
 
 void Game::updateAudioVolume()
 {
-    float vol = static_cast<float>(gameSettings.getVolume());
-    backgroundMusic.setVolume(vol);
-    jumpSound.setVolume(vol);
-    shootSound.setVolume(vol);
-    gameOverSound.setVolume(vol);
+    AudioManager::getInstance().setVolume(static_cast<float>(gameSettings.getVolume()));
 }

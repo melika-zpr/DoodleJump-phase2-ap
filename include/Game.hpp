@@ -9,6 +9,7 @@
 #include "Player.hpp"
 #include "WorldManager.hpp"
 #include "Settings.hpp"
+#include "AudioManager.hpp"
 
 
 class Game
@@ -86,12 +87,6 @@ private:
 
     GameState gameState; // Current screen state: Menu, Playing, or GameOver
 
-    ResourceManager<sf::SoundBuffer> soundManager; // برای افکت‌های صوتی کوتاه
-    sf::Music backgroundMusic;                     // برای موسیقی پس‌زمینه (حجم بالا)
-    
-    sf::Sound jumpSound;
-    sf::Sound shootSound;
-    sf::Sound gameOverSound;
 
     void updateAudioVolume(); // متد جدید برای اعمال ولوم تنظیمات روی صداها
 
