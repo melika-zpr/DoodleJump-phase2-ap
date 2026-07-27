@@ -72,6 +72,7 @@ private:
     sf::Text menuHighScoreText;
     sf::Text instructionText;
     sf::Text gameOverText;
+    sf::RectangleShape gameOverOverlay;
     
 
     sf::RectangleShape startButton;   // Texture button for starting the game

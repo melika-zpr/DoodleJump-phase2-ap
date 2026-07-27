@@ -231,6 +231,10 @@ void Game::setupUi()
     backButton.setOrigin(backButton.getSize().x / 2.f, backButton.getSize().y / 2.f);
     backButton.setPosition(window.getSize().x / 2.f, 650.f);
 
+    // ساخت لایه سفید مات برای صفحه Game Over
+    gameOverOverlay.setSize(sf::Vector2f(window.getSize().x, window.getSize().y));
+    gameOverOverlay.setFillColor(sf::Color(255, 255, 255, 210)); // رنگ سفید با مقداری شفافیت (آلفا = 210)
+
     // اعمال مقادیر اولیه (از تنظیمات خوانده شده) روی رابط کاربری
     updateSettingsUi();
 }
@@ -280,9 +284,20 @@ void Game::updateSettingsUi()
 
 void Game::updateOverlayTexts()
 {
+// استخراج نام درجه سختی به شکل متن
+    std::string diffStr;
+    switch (gameSettings.getDifficulty())
+    {
+    case Difficulty::Easy: diffStr = "EASY"; break;
+    case Difficulty::Medium: diffStr = "MEDIUM"; break;
+    case Difficulty::Hard: diffStr = "HARD"; break;
+    }
+
     scoreText.setString("SCORE: " + std::to_string(score));
-    highScoreText.setString("HIGH SCORE: " + std::to_string(highScore));
-    menuHighScoreText.setString("HIGH SCORE: " + std::to_string(highScore));
+    
+    // اضافه کردن نام مود به رکوردها
+    highScoreText.setString("HIGH SCORE (" + diffStr + "): " + std::to_string(highScore));
+    menuHighScoreText.setString("HIGH SCORE (" + diffStr + "): " + std::to_string(highScore));
 
     sf::FloatRect menuHighBounds = menuHighScoreText.getLocalBounds();
     menuHighScoreText.setOrigin(menuHighBounds.width / 2.f, menuHighBounds.height / 2.f);
@@ -306,6 +321,16 @@ void Game::resetGame()
 
     player = std::make_unique<Player>(texLeft, texRight, texShootBody, texSnout);
     worldManager = std::make_unique<WorldManager>(textureManager, gameSettings.getDifficulty());
+
+    //worldManager->spawnInitialPlatforms();
+
+    // برگرداندن جایگاه متن‌ها به گوشه تصویر برای حالت بازی
+    scoreText.setOrigin(0.f, 0.f);
+    scoreText.setPosition(20.f, 20.f);
+    highScoreText.setOrigin(0.f, 0.f);
+    highScoreText.setPosition(20.f, 50.f);
+
+
     updateOverlayTexts();
 }
 
@@ -488,11 +513,20 @@ void Game::update(float deltaTime)
     if (player->getPosition().y > 900.f)
     {
         if (gameState != GameState::GameOver)
-        { // برای اینکه صدا فقط یکبار پخش شود
+        { 
             gameState = GameState::GameOver;
             AudioManager::getInstance().playGameOver();
+            
+            // تنظیم جایگاه متن‌های امتیاز برای وسط صفحه در زمان باخت
+            sf::FloatRect scoreBounds = scoreText.getLocalBounds();
+            scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
+            scoreText.setPosition(window.getSize().x / 2.f, 250.f);
+
+            sf::FloatRect hsBounds = highScoreText.getLocalBounds();
+            highScoreText.setOrigin(hsBounds.width / 2.f, hsBounds.height / 2.f);
+            highScoreText.setPosition(window.getSize().x / 2.f, 290.f);
         }
-    }
+    } 
 }
 
 void Game::loadHighScore()
@@ -525,19 +559,17 @@ void Game::saveHighScore() const
 }
 
 void Game::drawOverlay()
-{
-    if (gameState == GameState::Menu)
+{if (gameState == GameState::Menu)
     {
         window.draw(titleText);
         window.draw(menuHighScoreText);
-        window.draw(subtitleText);
+        // window.draw(subtitleText); <--- این خط حذف شد تا متن مزاحم گوشه تصویر پاک شود
         window.draw(startButton);
         window.draw(instructionText);
-        window.draw(settingsMenuButton); // رسم دکمه چرخ‌دنده در منو
+        window.draw(settingsMenuButton); 
     }
     else if (gameState == GameState::Settings)
     {
-        // رسم صفحه تنظیمات
         window.draw(settingsTitleText);
         window.draw(volumeLabelText);
         window.draw(sliderTrack);
@@ -561,6 +593,9 @@ void Game::drawOverlay()
     }
     else if (gameState == GameState::GameOver)
     {
+        // رسم لایه مات‌کننده پیش از هر چیز دیگری در صفحه باخت
+        window.draw(gameOverOverlay); 
+        
         window.draw(gameOverText);
         window.draw(scoreText);
         window.draw(highScoreText);
