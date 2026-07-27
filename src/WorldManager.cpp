@@ -10,7 +10,9 @@ WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff
     gen(std::random_device{}()), 
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    difficulty(diff) {
+    difficulty(diff),
+    totalScrolledDistance(0.f) // مقداردهی اولیه مسافت 
+    {
     // Initialize the world with safe starting platform positions.
     spawnInitialPlatforms();
 }
@@ -238,6 +240,19 @@ float WorldManager::update(Player &player, float deltaTime)
         }
     }
 
+    // ۱. افزودن مقدار اسکرول به مسافت کل طی شده
+    if (scrollAmount > 0.f)
+    {
+        totalScrolledDistance += scrollAmount;
+    }
+
+    // ۲. شرط تاخیر در اسپاون هیولا و حفره (بعد از ۱۵۰۰ پیکسل صعود)
+    if (totalScrolledDistance > 1500.f)
+    {
+        // وقتی نفر اول کدهای هیولا و حفره را تحویل داد، 
+        // توابع اسپاون آن‌ها را اینجا صدا می‌زنید.
+    }
+
     return scrollAmount;
 }
 
@@ -247,4 +262,35 @@ void WorldManager::draw(sf::RenderWindow &window)
     {
         plat.draw(window);
     }
+}
+
+bool WorldManager::isAreaClear(const sf::FloatRect& area, float padding) const {
+    // ایجاد یک مستطیل بزرگتر به عنوان حریم امن عبور بازیکن
+    sf::FloatRect paddedArea(
+        area.left - padding,
+        area.top - padding,
+        area.width + (padding * 2.f),
+        area.height + (padding * 2.f)
+    );
+
+    for (const auto& plat : platforms) {
+        // متد isActive و getBounds از کلاس Platform استفاده شده‌اند[cite: 8]
+        if (plat.isActive() && plat.getBounds().intersects(paddedArea)) {
+            return false; // مسیر مسدود است
+        }
+    }
+
+    // جایگاه بررسی تداخل با هیولاها و حفره‌ها (بعداً اضافه می‌شود)
+
+    return true; // فضا کاملاً باز و امن است
+}
+
+
+// تابع موقت برای تولید گلوله
+void WorldManager::spawnBullet(sf::Vector2f startPosition) {
+    // فعلاً فقط صدا را پخش می‌کنیم تا وقتی که کلاس Bullet توسط نفر اول آماده شود
+    AudioManager::getInstance().playShoot();
+    
+    // کدی که بعداً اضافه می‌کنید:
+    // bullets.push_back(Bullet(textureManager.get("bullet"), startPosition));
 }

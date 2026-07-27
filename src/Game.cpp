@@ -424,6 +424,17 @@ void Game::processEvents()
                 AudioManager::getInstance().stopMusic();
                 startGame();
             }
+            else if (event.key.code == sf::Keyboard::Space && gameState == GameState::Playing)
+            {
+                // گرفتن موقعیت بازیکن برای نقطه شروع شلیک
+                sf::Vector2f shootPos = player->getPosition();
+                
+                // یک افست منفی روی محور Y می‌دهیم تا گلوله از بالای سر کاراکتر خارج شود
+                shootPos.y -= 20.f; 
+                
+                // فراخوانی تابع اسپاون گلوله
+                worldManager->spawnBullet(shootPos);
+            }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
             {
                 startGame();
