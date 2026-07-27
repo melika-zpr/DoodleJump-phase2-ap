@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <iostream>
 
-// یک کلاس جنریک برای مدیریت منابع (Texture, Font, SoundBuffer)
 template <typename T>
 class ResourceManager
 {
@@ -15,10 +14,8 @@ private:
     std::map<std::string, T> resources;
 
 public:
-    // بارگذاری منبع در صورت عدم وجود، و بازگرداندن رفرنس آن
     T &load(const std::string &name, const std::string &filename)
     {
-        // اگر منبع از قبل بارگذاری نشده بود
         if (resources.find(name) == resources.end())
         {
             T resource;
@@ -32,7 +29,6 @@ public:
         return resources[name];
     }
 
-    // دریافت رفرنس منبعی که قبلاً بارگذاری شده است
     T &get(const std::string &name)
     {
         if (resources.find(name) != resources.end())

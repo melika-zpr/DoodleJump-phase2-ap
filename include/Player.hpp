@@ -9,7 +9,6 @@ private:
     sf::Vector2f position;
     sf::Vector2f velocity;
 
-    // پوینتر برای نگهداری آدرس دو تصویر بدون کپی کردن اضافی در حافظه
     sf::Texture* texLeft;
     sf::Texture* texRight;
     
@@ -19,7 +18,6 @@ private:
     float jumpForce;
 
 public:
-    // سازنده حالا دو تصویر (چپ و راست) دریافت می‌کند
     Player(sf::Texture& textureLeft, sf::Texture& textureRight);
 
     void handleInput();
@@ -28,7 +26,6 @@ public:
     void jump();
     void springJump();
     
-    // دکمه‌های دسترسی (Getters / Setters)
     sf::Vector2f getPosition() const;
     sf::Vector2f getVelocity() const;
     void setVelocity(sf::Vector2f vel);

@@ -12,7 +12,6 @@ class WorldManager {
 private:
     std::vector<Platform> platforms;
     
-    // ارجاع به مدیر منابع برای دسترسی به عکس سکوها
     ResourceManager<sf::Texture>& textureManager;
     std::mt19937 gen;
     float lastPlatformX;
@@ -23,7 +22,6 @@ public:
 
     void spawnInitialPlatforms();
     
-    // بازیکن به عنوان ورودی داده می‌شود تا برخوردها و دوربین محاسبه شود
     float update(Player& player, float deltaTime);
     
     void draw(sf::RenderWindow& window);
