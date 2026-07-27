@@ -28,21 +28,32 @@ private:
 
 
     std::vector<Platform> platforms;
-    
-    ResourceManager<sf::Texture>& textureManager;
+
+    // ارجاع به مدیر منابع برای دسترسی به عکس سکوها
+    ResourceManager<sf::Texture> &textureManager;
     std::mt19937 gen;
+    Difficulty difficulty;
+
     float lastPlatformX;
     Platform::PlatformType lastPlatformType;
-    Difficulty difficulty;
+
+    // متغیر محاسبه ارتفاع طی شده برای تاخیر در تولید موانع
+    float totalScrolledDistance;
 
 public:
     bool isGameOver() const { return gameOver; }
     WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff);
     void spawnInitialPlatforms();
+
+    // بازیکن به عنوان ورودی داده می‌شود تا برخوردها و دوربین محاسبه شود
+    float update(Player &player, float deltaTime);
+    void draw(sf::RenderWindow &window);
     
-    float update(Player& player, float deltaTime);
+    // تابع مشترک برای بررسی تداخل (با حاشیه امن پیش‌فرض 30 پیکسل)
+    bool isAreaClear(const sf::FloatRect& area, float padding = 30.f) const;
     
-    void draw(sf::RenderWindow& window);
+    // تابعی که Game.cpp برای شلیک کردن صدا می‌زند
+    void spawnBullet(sf::Vector2f startPosition);
 };
 
 #endif
