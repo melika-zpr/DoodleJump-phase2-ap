@@ -29,6 +29,8 @@ private:
     int hp;
     bool active = true;
     float baseSpeed = 80.f;
+    bool isSplitMonster; 
+
 };
 
 #endif
