@@ -23,18 +23,17 @@ private:
         Settings
     };
 
-    Settings gameSettings; // شیء مدیریت تنظیمات
-    int highScores[3];     // سه امتیاز برتر برای (آسان، متوسط، سخت)
+    Settings gameSettings; 
+    int highScores[3];     
 
-    // المان‌های UI صفحه تنظیمات
     sf::Text settingsTitleText;
     sf::Text volumeLabelText;
     sf::Text difficultyLabelText;
     sf::Text volumeValueText;
 
-    sf::RectangleShape sliderTrack; // خط نوار صدا
-    sf::CircleShape sliderHandle;   // از دایره برای دستگیره استفاده می‌کنیم
-    bool isDraggingSlider;          // وضعیت کشیدن نوار صدا توسط موس
+    sf::RectangleShape sliderTrack; 
+    sf::CircleShape sliderHandle;   
+    bool isDraggingSlider;          
 
     sf::RectangleShape easyButton;
     sf::RectangleShape mediumButton;
@@ -48,10 +47,8 @@ private:
     sf::RectangleShape backButton;
     
 
-    // تابع کمکی برای آپدیت رنگ دکمه‌ها و موقعیت نوار صدا بر اساس تنظیمات فعلی
     void updateSettingsUi();
 
-    // دکمه ورود به تنظیمات از منوی اصلی
     sf::RectangleShape settingsMenuButton;
     sf::Text settingsMenuText;
 

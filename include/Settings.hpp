@@ -3,7 +3,6 @@
 
 #include <string>
 
-// تعریف سطوح دشواری به صورت یک Enum امن
 enum class Difficulty {
     Easy = 0,
     Medium = 1,
