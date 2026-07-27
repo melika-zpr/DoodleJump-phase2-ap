@@ -1,48 +1,65 @@
 #include "WorldManager.hpp"
+#include "AudioManager.hpp"
 #include <random>
 #include <limits>
 #include <vector>
 #include <algorithm>
 
-WorldManager::WorldManager(ResourceManager<sf::Texture>& texMgr)
-    : textureManager(texMgr), gen(std::random_device{}()), lastPlatformX(200.f), lastPlatformType(Platform::PlatformType::Normal) {
+WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
+    : textureManager(texMgr), 
+    gen(std::random_device{}()), 
+    lastPlatformX(200.f), 
+    lastPlatformType(Platform::PlatformType::Normal),
+    difficulty(diff) {
     // Initialize the world with safe starting platform positions.
     spawnInitialPlatforms();
 }
 
-static sf::Texture& getTextureForType(ResourceManager<sf::Texture>& manager, Platform::PlatformType type) {
+static sf::Texture &getTextureForType(ResourceManager<sf::Texture> &manager, Platform::PlatformType type)
+{
     // Select the correct platform texture based on platform type.
-    switch (type) {
-        case Platform::PlatformType::Broken:
-            return manager.get("platform_broken");
-        case Platform::PlatformType::Moving:
-            return manager.get("platform_moving");
-        default:
-            return manager.get("platform");
+    switch (type)
+    {
+    case Platform::PlatformType::Broken:
+        return manager.get("platform_broken");
+    case Platform::PlatformType::Moving:
+        return manager.get("platform_moving");
+    default:
+        return manager.get("platform");
     }
 }
 
-static Platform::PlatformType choosePlatformType(std::mt19937 &gen, Platform::PlatformType previousType) {
+static Platform::PlatformType choosePlatformType(std::mt19937 &gen, Platform::PlatformType previousType, Difficulty diff)
+{
     // Randomly choose a platform type while avoiding two broken platforms in a row.
     std::uniform_int_distribution<int> typeDist(0, 4);
     int draw = typeDist(gen);
     Platform::PlatformType type;
-    if (draw == 0) {
+
+    if (draw == 0)
+    {
         type = Platform::PlatformType::Broken;
-    } else if (draw == 1) {
+    }
+    else if (draw == 1)
+    {
         type = Platform::PlatformType::Moving;
-    } else {
+    }
+    else
+    {
         type = Platform::PlatformType::Normal;
     }
 
-    if (previousType == Platform::PlatformType::Broken && type == Platform::PlatformType::Broken) {
+    if (previousType == Platform::PlatformType::Broken && type == Platform::PlatformType::Broken)
+    {
         type = Platform::PlatformType::Normal;
     }
     return type;
 }
 
-static bool chooseHasSpring(std::mt19937 &gen, Platform::PlatformType type) {
-    if (type == Platform::PlatformType::Broken) {
+static bool chooseHasSpring(std::mt19937 &gen, Platform::PlatformType type)
+{
+    if (type == Platform::PlatformType::Broken)
+    {
         return false;
     }
 
@@ -50,14 +67,16 @@ static bool chooseHasSpring(std::mt19937 &gen, Platform::PlatformType type) {
     return springDist(gen) == 0;
 }
 
-static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX, float maxX) {
+static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX, float maxX)
+{
     // Choose the next platform X position relative to the previous one.
     std::uniform_real_distribution<float> offset(-60.f, 60.f);
     float nextX = previousX + offset(gen);
     return std::clamp(nextX, minX, maxX);
 }
 
-void WorldManager::spawnInitialPlatforms() {
+void WorldManager::spawnInitialPlatforms()
+{
     // Create the first platform under the player, then add more above it.
     auto &normalTex = textureManager.get("platform");
     auto &springTex = textureManager.get("spring");
@@ -71,13 +90,21 @@ void WorldManager::spawnInitialPlatforms() {
     std::vector<float> occupiedYs;
     occupiedYs.push_back(currentY);
 
-    for (int i = 0; i < 9; ++i) {
+    float speedMultiplier = 1.0f;
+    if (difficulty == Difficulty::Medium) {
+        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+    } else if (difficulty == Difficulty::Hard) {
+        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+    }
+
+    for (int i = 0; i < 9; ++i)
+    {
         float nextY;
-        do {
+        do
+        {
             nextY = currentY - disY(gen);
-        } while (std::any_of(occupiedYs.begin(), occupiedYs.end(), [&](float y) {
-            return std::abs(y - nextY) < 60.f;
-        }));
+        } while (std::any_of(occupiedYs.begin(), occupiedYs.end(), [&](float y)
+                             { return std::abs(y - nextY) < 60.f; }));
 
         currentY = nextY;
         occupiedYs.push_back(currentY);
@@ -85,40 +112,56 @@ void WorldManager::spawnInitialPlatforms() {
         float nextX = chooseNextPlatformX(lastPlatformX, gen, 50.f, 500.f - 100.f - 50.f);
         lastPlatformX = nextX;
 
-        Platform::PlatformType type = choosePlatformType(gen, lastPlatformType);
+        Platform::PlatformType type = choosePlatformType(gen, lastPlatformType, difficulty);
         lastPlatformType = type;
 
         sf::Texture &texture = getTextureForType(textureManager, type);
         bool hasSpring = chooseHasSpring(gen, type);
         platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type, &springTex, hasSpring));
+        // <--- اضافه کردن این خط برای اعمال سرعت
+        platforms.back().setSpeedMultiplier(speedMultiplier);
     }
 }
 
-float WorldManager::update(Player& player, float deltaTime) {
+float WorldManager::update(Player &player, float deltaTime)
+{
     // Handle player-platform collision only when the player is falling downward.
-    if (player.getVelocity().y > 0.f) {
+    if (player.getVelocity().y > 0.f)
+    {
         sf::FloatRect playerBounds = player.getBounds();
         float playerBottom = playerBounds.top + playerBounds.height;
 
-        for (auto& plat : platforms) {
-            if (!plat.isActive()) {
+        for (auto &plat : platforms)
+        {
+            if (!plat.isActive())
+            {
                 continue;
             }
 
             sf::FloatRect platBounds = plat.getBounds();
             sf::FloatRect springBounds = plat.getSpringBounds();
-            if (plat.containsSpring() && playerBounds.intersects(springBounds)) {
-                if (playerBottom < springBounds.top + springBounds.height) {
+            if (plat.containsSpring() && playerBounds.intersects(springBounds))
+            {
+                if (playerBottom < springBounds.top + springBounds.height)
+                {
                     plat.activateSpring();
                     player.springJump();
+                    AudioManager::getInstance().playJump(); // <--- پخش صدای فنر
                     break;
                 }
-            } else if (playerBounds.intersects(platBounds)) {
-                if (playerBottom < platBounds.top + platBounds.height) {
-                    if (plat.getType() == Platform::PlatformType::Broken) {
+            }
+            else if (playerBounds.intersects(platBounds))
+            {
+                if (playerBottom < platBounds.top + platBounds.height)
+                {
+                    if (plat.getType() == Platform::PlatformType::Broken)
+                    {
                         plat.breakPlatform();
-                    } else {
+                    }
+                    else
+                    {
                         player.jump();
+                        AudioManager::getInstance().playJump(); // <--- پخش صدای پرش عادی
                     }
                     break;
                 }
@@ -127,7 +170,8 @@ float WorldManager::update(Player& player, float deltaTime) {
     }
 
     float scrollAmount = 0.f;
-    if (player.getPosition().y < 400.f) {
+    if (player.getPosition().y < 400.f)
+    {
         // Scroll the level up when the player reaches the upper region.
         float diff = 400.f - player.getPosition().y;
         scrollAmount = diff;
@@ -139,7 +183,8 @@ float WorldManager::update(Player& player, float deltaTime) {
         std::uniform_real_distribution<float> disY(75.f, 95.f);
 
         float minY = std::numeric_limits<float>::max();
-        for (auto& plat : platforms) {
+        for (auto &plat : platforms)
+        {
             sf::Vector2f pos = plat.getPosition();
             pos.y += diff;
             plat.setPosition(pos);
@@ -147,32 +192,48 @@ float WorldManager::update(Player& player, float deltaTime) {
             plat.update(deltaTime, 500.f);
         }
 
+        // محاسبه ضریب سرعت
+        float speedMultiplier = 1.0f;
+        if (difficulty == Difficulty::Medium) {
+        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+        } else if (difficulty == Difficulty::Hard) {
+        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+        }
+
+        
         // Recycle platforms that fall below the bottom of the screen.
-        for (auto& plat : platforms) {
-            if (plat.getPosition().y > 800.f) {
+        for (auto &plat : platforms)
+        {
+            if (plat.getPosition().y > 800.f)
+            {
                 float newY;
-                do {
+                do
+                {
                     newY = minY - disY(gen);
-                } while (std::any_of(platforms.begin(), platforms.end(), [&](const Platform &other) {
-                    return std::abs(other.getPosition().y - newY) < 60.f;
-                }));
+                } while (std::any_of(platforms.begin(), platforms.end(), [&](const Platform &other)
+                                     { return std::abs(other.getPosition().y - newY) < 60.f; }));
 
                 float nextX = chooseNextPlatformX(lastPlatformX, gen, 50.f, 500.f - 100.f - 50.f);
                 lastPlatformX = nextX;
 
-                Platform::PlatformType type = choosePlatformType(gen, lastPlatformType);
+                Platform::PlatformType type = choosePlatformType(gen, lastPlatformType, difficulty);
                 lastPlatformType = type;
 
                 sf::Texture &texture = getTextureForType(textureManager, type);
                 sf::Texture &springTex = textureManager.get("spring");
                 bool hasSpring = chooseHasSpring(gen, type);
                 plat.reset(texture, type, sf::Vector2f(nextX, newY), &springTex, hasSpring);
+                // <--- اضافه کردن این خط برای اعمال سرعت روی سکوهای جدیدی که از بالا وارد می‌شوند
+                plat.setSpeedMultiplier(speedMultiplier);
                 minY = newY;
             }
         }
-    } else {
+    }
+    else
+    {
         // Update all platforms when the player is not triggering level scroll.
-        for (auto& plat : platforms) {
+        for (auto &plat : platforms)
+        {
             plat.update(deltaTime, 500.f);
         }
     }
@@ -180,8 +241,10 @@ float WorldManager::update(Player& player, float deltaTime) {
     return scrollAmount;
 }
 
-void WorldManager::draw(sf::RenderWindow& window) {
-    for (auto& plat : platforms) {
+void WorldManager::draw(sf::RenderWindow &window)
+{
+    for (auto &plat : platforms)
+    {
         plat.draw(window);
     }
 }

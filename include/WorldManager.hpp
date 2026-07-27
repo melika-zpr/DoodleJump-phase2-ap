@@ -7,8 +7,10 @@
 #include "Platform.hpp"
 #include "Player.hpp"
 #include "ResourceManager.hpp"
+#include "Settings.hpp"
 
-class WorldManager {
+class WorldManager
+{
 private:
     std::vector<Platform> platforms;
     
@@ -16,10 +18,10 @@ private:
     std::mt19937 gen;
     float lastPlatformX;
     Platform::PlatformType lastPlatformType;
+    Difficulty difficulty;
 
 public:
-    WorldManager(ResourceManager<sf::Texture>& texMgr);
-
+    WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff);
     void spawnInitialPlatforms();
     
     float update(Player& player, float deltaTime);

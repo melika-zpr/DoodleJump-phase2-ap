@@ -209,5 +209,12 @@ Platform::PlatformType Platform::getType() const {
 }
 
 bool Platform::containsSpring() const {
+
     return hasSpring;
+}
+
+void Platform::setSpeedMultiplier(float multiplier) {
+    if (type == PlatformType::Moving) {
+        moveSpeed = 80.f * multiplier;
+    }
 }
