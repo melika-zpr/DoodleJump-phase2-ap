@@ -500,6 +500,20 @@ void Game::update(float deltaTime)
     }
 
     float scrollAmount = worldManager->update(*player, deltaTime);
+    if (worldManager->isGameOver() && gameState != GameState::GameOver)
+    {
+            gameState = GameState::GameOver;
+            AudioManager::getInstance().playGameOver();
+            
+            sf::FloatRect scoreBounds = scoreText.getLocalBounds();
+            scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
+            scoreText.setPosition(window.getSize().x / 2.f, 250.f);
+
+            sf::FloatRect hsBounds = highScoreText.getLocalBounds();
+            highScoreText.setOrigin(hsBounds.width / 2.f, hsBounds.height / 2.f);
+            highScoreText.setPosition(window.getSize().x / 2.f, 290.f);
+            return;
+    }
 
     if (scrollAmount > 0.f)
     {

@@ -233,25 +233,33 @@ float WorldManager::update(Player &player, float deltaTime)
 
     // ۲. بررسی برخورد بازیکن با هیولاها
     for (auto& mon : monsters) {
-        if (!mon.isActive()) continue;
-        
-        sf::FloatRect monBounds = mon.getBounds();
-        if (playerBounds.intersects(monBounds)) {
-            bool fallingDown = player.getVelocity().y > 0.f;
-            bool landedFromAbove = previousPlayerBottom <= monBounds.top + 10.f;
+            if (!mon.isActive()) continue;
+            
+            sf::FloatRect monBounds = mon.getBounds();
+            if (playerBounds.intersects(monBounds)) {
+                bool fallingDown = player.getVelocity().y > 0.f;
+                
+                // شرط دقیق‌تر برای فرود آمدن از بالا روی سر هیولا:
+                // ۱. بازیکن در حال سقوط به پایین باشد (velocity.y > 0)
+                // ۲. لبه پایینی بازیکن در فریم قبلی یا فعلی بالاتر یا بسیار نزدیک به لبه بالایی هیولا باشد
+                // ۳. هم‌پوشانی افقی کافی وجود داشته باشد تا برخورد واقعاً از پهلو محسوب نشود
+                float playerCenter = playerBounds.left + playerBounds.width / 2.f;
+                bool isAboveMonster = previousPlayerBottom <= monBounds.top + 12.f;
+                bool isHorizontallyAligned = (playerCenter >= monBounds.left - 5.f) && (playerCenter <= monBounds.left + monBounds.width + 5.f);
 
-            if (fallingDown && landedFromAbove) {
-                player.springJump(); 
-                AudioManager::getInstance().playJump();
-                mon.setActive(false); // نابودی هیولا با پرش از بالا
-                break;
-            } else {
-                gameOver = true;
-                AudioManager::getInstance().playGameOver();
-                return 0.f;
+                if (fallingDown && isAboveMonster && isHorizontallyAligned) {
+                    player.springJump(); 
+                    AudioManager::getInstance().playJump();
+                    mon.setActive(false); // نابودی هیولا با پرش از بالا
+                    break;
+                } else {
+                    // برخورد از پهلو، زیر یا زوایای دیگر -> باخت فوری
+                    gameOver = true;
+                    AudioManager::getInstance().playGameOver();
+                    return 0.f;
+                }
             }
         }
-    }
 
     if (player.getVelocity().y > 0.f)
     {
@@ -493,4 +501,8 @@ void WorldManager::renderBullets(sf::RenderWindow& window) {
     for (auto& bullet : bullets) {
         bullet.render(window);
     }
+}
+
+bool WorldManager::isGameOver() const {
+    return gameOver;
 }
