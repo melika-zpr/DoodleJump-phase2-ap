@@ -29,6 +29,8 @@ Game::Game()
         textureManager.load("button_restart", "assets/restart_button.png");
         textureManager.load("button_menu", "assets/menu_button.png");
         textureManager.load("button_settings", "assets/Settings_button.png");
+        textureManager.load("monster1", "assets/green_monster.png");
+        textureManager.load("monster2", "assets/BlueMonster.png");
         isDraggingSlider = false;
         textureManager.load("button_back", "assets/back_button.png");
 
