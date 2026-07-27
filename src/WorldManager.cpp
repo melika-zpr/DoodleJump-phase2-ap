@@ -8,13 +8,69 @@
 WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
     : textureManager(texMgr), 
     gen(std::random_device{}()), 
-    difficulty(diff),
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    totalScrolledDistance(0.f) // مقداردهی اولیه مسافت 
-    {
+    difficulty(diff),
+    gameOver(false),
+    totalScrolledDistance(0.f) // مقداردهی اولیه مسافت
+{
+    monsterTex1 = &texMgr.get("monster1");
+    monsterTex2 = &texMgr.get("monster2");
     // Initialize the world with safe starting platform positions.
     spawnInitialPlatforms();
+}
+
+void WorldManager::spawnMonsterNearPlatform(const Platform& platform, float windowWidth) {
+    // احتمال ظاهر شدن هیولا (مثلاً ۱ در ۵)
+    std::uniform_int_distribution<int> prob(0, 4);
+    if (prob(gen) != 0) return;
+
+    sf::FloatRect platBounds = platform.getBounds();
+    if (platBounds.width == 0) return;
+
+    float monsterWidth = 40.f;  
+    float monsterHeight = 40.f;
+    std::uniform_real_distribution<float> xOffset(0.f, platBounds.width - monsterWidth);
+    float x = platBounds.left + xOffset(gen);
+    float y = platBounds.top - monsterHeight - 5.f;
+
+    x = std::max(0.f, std::min(x, windowWidth - monsterWidth));
+
+    sf::Vector2f pos(x, y);
+    if (isPositionOverlappingWithAnyObject(pos, monsterWidth, monsterHeight)) {
+        return; 
+    }
+
+    int health = 1;
+    if (difficulty == Difficulty::Medium) health = 2;
+    else if (difficulty == Difficulty::Hard) health = 3;
+
+    monsters.emplace_back(*monsterTex1, *monsterTex2, pos, health);
+    monsters.back().setSpeedMultiplier(getSpeedMultiplier());
+}
+
+bool WorldManager::isPositionOverlappingWithAnyObject(sf::Vector2f pos, float width, float height) const {
+    sf::FloatRect rect(pos, sf::Vector2f(width, height));
+
+    for (const auto& plat : platforms) {
+        if (plat.isActive() && plat.getBounds().intersects(rect)) {
+            return true;
+        }
+    }
+
+    for (const auto& mon : monsters) {
+        if (mon.isActive() && mon.getBounds().intersects(rect)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+float WorldManager::getSpeedMultiplier() const {
+    if (difficulty == Difficulty::Medium) return 1.5f;
+    if (difficulty == Difficulty::Hard) return 2.0f;
+    return 1.0f;
 }
 
 static sf::Texture &getTextureForType(ResourceManager<sf::Texture> &manager, Platform::PlatformType type)
@@ -120,19 +176,52 @@ void WorldManager::spawnInitialPlatforms()
         sf::Texture &texture = getTextureForType(textureManager, type);
         bool hasSpring = chooseHasSpring(gen, type);
         platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type, &springTex, hasSpring));
-        // <--- اضافه کردن این خط برای اعمال سرعت
         platforms.back().setSpeedMultiplier(speedMultiplier);
+        
+        // شرط تاخیر در اسپاون هیولا (بعد از ۱۵۰۰ پیکسل صعود یا طبق منطق اولیه)
+        if (totalScrolledDistance > 1500.f) {
+            spawnMonsterNearPlatform(platforms.back(), 500.f);
+        }
     }
 }
 
 float WorldManager::update(Player &player, float deltaTime)
 {
+    if (gameOver) return 0.f;
+
+    // آپدیت هیولاها
+    for (auto& mon : monsters) {
+        mon.update(deltaTime, 500.f);
+    }
+
+    // --- بررسی برخورد با هیولاها ---
+    sf::FloatRect playerBounds = player.getBounds();
+    float playerBottom = playerBounds.top + playerBounds.height;
+
+    for (auto& mon : monsters) {
+        if (!mon.isActive()) continue;
+        
+        sf::FloatRect monBounds = mon.getBounds();
+        if (playerBounds.intersects(monBounds)) {
+            bool fallingDown = player.getVelocity().y > 0.f;
+            bool landedFromAbove = previousPlayerBottom <= monBounds.top + 10.f;
+
+            if (fallingDown && landedFromAbove) {
+                player.springJump(); 
+                AudioManager::getInstance().playJump();
+                mon.setActive(false); 
+                break;
+            } else {
+                gameOver = true;
+                AudioManager::getInstance().playGameOver();
+                return 0.f;
+            }
+        }
+    }
+
     // Handle player-platform collision only when the player is falling downward.
     if (player.getVelocity().y > 0.f)
     {
-        sf::FloatRect playerBounds = player.getBounds();
-        float playerBottom = playerBounds.top + playerBounds.height;
-
         for (auto &plat : platforms)
         {
             if (!plat.isActive())
@@ -148,7 +237,7 @@ float WorldManager::update(Player &player, float deltaTime)
                 {
                     plat.activateSpring();
                     player.springJump();
-                    AudioManager::getInstance().playJump(); // <--- پخش صدای فنر
+                    AudioManager::getInstance().playJump(); 
                     break;
                 }
             }
@@ -163,7 +252,7 @@ float WorldManager::update(Player &player, float deltaTime)
                     else
                     {
                         player.jump();
-                        AudioManager::getInstance().playJump(); // <--- پخش صدای پرش عادی
+                        AudioManager::getInstance().playJump(); 
                     }
                     break;
                 }
@@ -194,14 +283,20 @@ float WorldManager::update(Player &player, float deltaTime)
             plat.update(deltaTime, 500.f);
         }
 
+        // اسکرول هیولاها همراه با صفحه
+        for (auto &mon : monsters) {
+            sf::Vector2f pos = mon.getPosition();
+            pos.y += diff;
+            mon.setPosition(pos);
+        }
+
         // محاسبه ضریب سرعت
         float speedMultiplier = 1.0f;
         if (difficulty == Difficulty::Medium) {
-        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+            speedMultiplier = 2.0f; 
         } else if (difficulty == Difficulty::Hard) {
-        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+            speedMultiplier = 3.0f; 
         }
-
         
         // Recycle platforms that fall below the bottom of the screen.
         for (auto &plat : platforms)
@@ -225,9 +320,13 @@ float WorldManager::update(Player &player, float deltaTime)
                 sf::Texture &springTex = textureManager.get("spring");
                 bool hasSpring = chooseHasSpring(gen, type);
                 plat.reset(texture, type, sf::Vector2f(nextX, newY), &springTex, hasSpring);
-                // <--- اضافه کردن این خط برای اعمال سرعت روی سکوهای جدیدی که از بالا وارد می‌شوند
                 plat.setSpeedMultiplier(speedMultiplier);
                 minY = newY;
+
+                // اسپاون هیولا بعد از گذر از مسافت تعیین شده
+                if (totalScrolledDistance > 1500.f) {
+                    spawnMonsterNearPlatform(plat, 500.f);
+                }
             }
         }
     }
@@ -240,19 +339,22 @@ float WorldManager::update(Player &player, float deltaTime)
         }
     }
 
-    // ۱. افزودن مقدار اسکرول به مسافت کل طی شده
+    // افزودن مقدار اسکرول به مسافت کل طی شده
     if (scrollAmount > 0.f)
     {
         totalScrolledDistance += scrollAmount;
     }
 
-    // ۲. شرط تاخیر در اسپاون هیولا و حفره (بعد از ۱۵۰۰ پیکسل صعود)
-    if (totalScrolledDistance > 1500.f)
-    {
-        // وقتی نفر اول کدهای هیولا و حفره را تحویل داد، 
-        // توابع اسپاون آن‌ها را اینجا صدا می‌زنید.
+    // حذف هیولاهای مرده یا خارج شده از صفحه
+    for (auto it = monsters.begin(); it != monsters.end();) {
+        if (!it->isActive() || it->getPosition().y > 900.f) {
+            it = monsters.erase(it);
+        } else {
+            ++it;
+        }
     }
 
+    previousPlayerBottom = player.getBounds().top + player.getBounds().height;
     return scrollAmount;
 }
 
@@ -262,10 +364,15 @@ void WorldManager::draw(sf::RenderWindow &window)
     {
         plat.draw(window);
     }
+
+    for (auto &mon : monsters) {
+        if (mon.isActive()) {
+            mon.draw(window);
+        }
+    }
 }
 
 bool WorldManager::isAreaClear(const sf::FloatRect& area, float padding) const {
-    // ایجاد یک مستطیل بزرگتر به عنوان حریم امن عبور بازیکن
     sf::FloatRect paddedArea(
         area.left - padding,
         area.top - padding,
@@ -274,23 +381,20 @@ bool WorldManager::isAreaClear(const sf::FloatRect& area, float padding) const {
     );
 
     for (const auto& plat : platforms) {
-        // متد isActive و getBounds از کلاس Platform استفاده شده‌اند[cite: 8]
         if (plat.isActive() && plat.getBounds().intersects(paddedArea)) {
-            return false; // مسیر مسدود است
+            return false; 
         }
     }
 
-    // جایگاه بررسی تداخل با هیولاها و حفره‌ها (بعداً اضافه می‌شود)
+    for (const auto& mon : monsters) {
+        if (mon.isActive() && mon.getBounds().intersects(paddedArea)) {
+            return false;
+        }
+    }
 
-    return true; // فضا کاملاً باز و امن است
+    return true; 
 }
 
-
-// تابع موقت برای تولید گلوله
 void WorldManager::spawnBullet(sf::Vector2f startPosition) {
-    // فعلاً فقط صدا را پخش می‌کنیم تا وقتی که کلاس Bullet توسط نفر اول آماده شود
     AudioManager::getInstance().playShoot();
-    
-    // کدی که بعداً اضافه می‌کنید:
-    // bullets.push_back(Bullet(textureManager.get("bullet"), startPosition));
 }
