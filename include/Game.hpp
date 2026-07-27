@@ -11,7 +11,6 @@
 #include "Settings.hpp"
 #include "AudioManager.hpp"
 
-
 class Game
 {
 private:
@@ -20,9 +19,11 @@ private:
         Menu,
         Playing,
         GameOver,
-        Settings
+        Settings,
+        HoleSuction
     };
 
+    float shootCooldown = 0.f;
     Settings gameSettings; 
     int highScores[3];     
 
@@ -46,7 +47,6 @@ private:
 
     sf::RectangleShape backButton;
     
-
     void updateSettingsUi();
 
     sf::RectangleShape settingsMenuButton;
@@ -74,7 +74,6 @@ private:
     sf::Text gameOverText;
     sf::RectangleShape gameOverOverlay;
     
-
     sf::RectangleShape startButton;   // Texture button for starting the game
     sf::RectangleShape restartButton; // Texture button for restarting after game over
     sf::RectangleShape menuButton;    // Texture button for returning to the main menu
@@ -83,10 +82,11 @@ private:
     int highScore;                                                    // Stored best score across launches
     static constexpr const char *highScoreFilename = "highscore.txt"; // File where high score is persisted
 
-    GameState gameState; // Current screen state: Menu, Playing, or GameOver
+    GameState gameState; // Current screen state: Menu, Playing, HoleSuction, or GameOver
 
+    sf::Vector2f holeCenterForSuction; // ذخیره مختصات مرکز سیاه‌چاله برای انیمیشن مکش
 
-    void updateAudioVolume(); // متد جدید برای اعمال ولوم تنظیمات روی صداها
+    void updateAudioVolume(); // اعمال ولوم تنظیمات روی صداها
 
     void processEvents();         // Read window events and player input
     void update(float deltaTime); // Advance game state and handle scrolling

@@ -105,6 +105,9 @@ sf::FloatRect Monster::getBounds() const
 void Monster::takeDamage(int damage)
 {
     hp -= damage;
+    if (hp <= 0) {
+        active = false;
+    }
 }
 
 bool Monster::isDead() const

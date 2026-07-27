@@ -144,3 +144,26 @@ void Player::setPosition(sf::Vector2f pos)
     position = pos;
     sprite.setPosition(position);
 }
+
+
+void Player::updateSuction(sf::Vector2f targetPos, float deltaTime, bool& finished) {
+    sf::Vector2f direction = targetPos - position;
+    float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+    
+    if (distance > 2.f) {
+        position += direction * (4.f * deltaTime);
+    }
+    
+    sf::Vector2f currentScale = sprite.getScale();
+    currentScale.x -= 1.2f * deltaTime;
+    currentScale.y -= 1.2f * deltaTime;
+    
+    if (currentScale.x <= 0.f) {
+        currentScale.x = 0.f;
+        currentScale.y = 0.f;
+        finished = true;
+    }
+    
+    sprite.setScale(currentScale);
+    sprite.setPosition(position);
+}
