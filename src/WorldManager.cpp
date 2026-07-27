@@ -502,6 +502,3 @@ void WorldManager::renderBullets(sf::RenderWindow& window) {
     }
 }
 
-bool WorldManager::isGameOver() const {
-    return gameOver;
-}
