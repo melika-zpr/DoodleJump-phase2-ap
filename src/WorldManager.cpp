@@ -10,14 +10,68 @@ WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff
     gen(std::random_device{}()), 
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    difficulty(diff) {
-    // Initialize the world with safe starting platform positions.
-    spawnInitialPlatforms();
+    difficulty(diff),
+    gameOver(false) {
+        monsterTex1 = &texMgr.get("monster1");
+        monsterTex2 = &texMgr.get("monster2");
+        spawnInitialPlatforms();
+}
+
+void WorldManager::spawnMonsterNearPlatform(const Platform& platform, float windowWidth) {
+    // احتمال ظاهر شدن هیولا (مثلاً ۱ در ۵)
+    std::uniform_int_distribution<int> prob(0, 4);
+    if (prob(gen) != 0) return;
+
+    sf::FloatRect platBounds = platform.getBounds();
+    if (platBounds.width == 0) return;
+
+    float monsterWidth = 40.f;  
+    float monsterHeight = 40.f;
+    std::uniform_real_distribution<float> xOffset(0.f, platBounds.width - monsterWidth);
+    float x = platBounds.left + xOffset(gen);
+    float y = platBounds.top - monsterHeight - 5.f;
+
+    x = std::max(0.f, std::min(x, windowWidth - monsterWidth));
+
+    sf::Vector2f pos(x, y);
+    if (isPositionOverlappingWithAnyObject(pos, monsterWidth, monsterHeight)) {
+        return; 
+    }
+
+    int health = 1;
+    if (difficulty == Difficulty::Medium) health = 2;
+    else if (difficulty == Difficulty::Hard) health = 3;
+
+    monsters.emplace_back(*monsterTex1, *monsterTex2, pos, health);
+    monsters.back().setSpeedMultiplier(getSpeedMultiplier());
+}
+
+bool WorldManager::isPositionOverlappingWithAnyObject(sf::Vector2f pos, float width, float height) const {
+    sf::FloatRect rect(pos, sf::Vector2f(width, height));
+
+    for (const auto& plat : platforms) {
+        if (plat.isActive() && plat.getBounds().intersects(rect)) {
+            return true;
+        }
+    }
+
+    for (const auto& mon : monsters) {
+        if (mon.isActive() && mon.getBounds().intersects(rect)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+float WorldManager::getSpeedMultiplier() const {
+    if (difficulty == Difficulty::Medium) return 1.5f;
+    if (difficulty == Difficulty::Hard) return 2.0f;
+    return 1.0f;
 }
 
 static sf::Texture &getTextureForType(ResourceManager<sf::Texture> &manager, Platform::PlatformType type)
 {
-    // Select the correct platform texture based on platform type.
     switch (type)
     {
     case Platform::PlatformType::Broken:
@@ -31,7 +85,6 @@ static sf::Texture &getTextureForType(ResourceManager<sf::Texture> &manager, Pla
 
 static Platform::PlatformType choosePlatformType(std::mt19937 &gen, Platform::PlatformType previousType, Difficulty diff)
 {
-    // Randomly choose a platform type while avoiding two broken platforms in a row.
     std::uniform_int_distribution<int> typeDist(0, 4);
     int draw = typeDist(gen);
     Platform::PlatformType type;
@@ -69,7 +122,6 @@ static bool chooseHasSpring(std::mt19937 &gen, Platform::PlatformType type)
 
 static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX, float maxX)
 {
-    // Choose the next platform X position relative to the previous one.
     std::uniform_real_distribution<float> offset(-60.f, 60.f);
     float nextX = previousX + offset(gen);
     return std::clamp(nextX, minX, maxX);
@@ -77,7 +129,6 @@ static float chooseNextPlatformX(float previousX, std::mt19937 &gen, float minX,
 
 void WorldManager::spawnInitialPlatforms()
 {
-    // Create the first platform under the player, then add more above it.
     auto &normalTex = textureManager.get("platform");
     auto &springTex = textureManager.get("spring");
     platforms.push_back(Platform(normalTex, sf::Vector2f(200.f, 750.f), Platform::PlatformType::Normal));
@@ -92,9 +143,9 @@ void WorldManager::spawnInitialPlatforms()
 
     float speedMultiplier = 1.0f;
     if (difficulty == Difficulty::Medium) {
-        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
+        speedMultiplier = 2.0f; 
     } else if (difficulty == Difficulty::Hard) {
-        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+        speedMultiplier = 3.0f; 
     }
 
     for (int i = 0; i < 9; ++i)
@@ -118,35 +169,63 @@ void WorldManager::spawnInitialPlatforms()
         sf::Texture &texture = getTextureForType(textureManager, type);
         bool hasSpring = chooseHasSpring(gen, type);
         platforms.push_back(Platform(texture, sf::Vector2f(nextX, currentY), type, &springTex, hasSpring));
-        // <--- اضافه کردن این خط برای اعمال سرعت
         platforms.back().setSpeedMultiplier(speedMultiplier);
+        spawnMonsterNearPlatform(platforms.back(), 500.f);
     }
 }
 
 float WorldManager::update(Player &player, float deltaTime)
 {
-    // Handle player-platform collision only when the player is falling downward.
+    if (gameOver) return 0.f;
+
+    // آپدیت هیولاها
+    for (auto& mon : monsters) {
+        mon.update(deltaTime, 500.f);
+    }
+
+    // --- بررسی برخورد با هیولاها ---
+    sf::FloatRect playerBounds = player.getBounds();
+    float playerBottom = playerBounds.top + playerBounds.height;
+
+    for (auto& mon : monsters) {
+        if (!mon.isActive()) continue;
+        
+        sf::FloatRect monBounds = mon.getBounds();
+        if (playerBounds.intersects(monBounds)) {
+            // بررسی دقیق‌تر برای اطمینان از اینکه بازیکن از بالا و در حال سقوط روی هیولا فرود آمده است
+            bool fallingDown = player.getVelocity().y > 0.f;
+            bool landedFromAbove = previousPlayerBottom <= monBounds.top + 10.f;
+
+            if (fallingDown && landedFromAbove) {
+                player.springJump(); 
+                AudioManager::getInstance().playJump();
+                mon.setActive(false); 
+                break;
+            } else {
+                gameOver = true;
+                AudioManager::getInstance().playGameOver();
+                return 0.f;
+            }
+        }
+    }
+
+    // --- بررسی برخورد با پلتفرم‌ها (فقط وقتی در حال سقوط است) ---
     if (player.getVelocity().y > 0.f)
     {
-        sf::FloatRect playerBounds = player.getBounds();
-        float playerBottom = playerBounds.top + playerBounds.height;
-
         for (auto &plat : platforms)
         {
-            if (!plat.isActive())
-            {
-                continue;
-            }
+            if (!plat.isActive()) continue;
 
             sf::FloatRect platBounds = plat.getBounds();
             sf::FloatRect springBounds = plat.getSpringBounds();
+            
             if (plat.containsSpring() && playerBounds.intersects(springBounds))
             {
                 if (playerBottom < springBounds.top + springBounds.height)
                 {
                     plat.activateSpring();
                     player.springJump();
-                    AudioManager::getInstance().playJump(); // <--- پخش صدای فنر
+                    AudioManager::getInstance().playJump(); 
                     break;
                 }
             }
@@ -161,7 +240,7 @@ float WorldManager::update(Player &player, float deltaTime)
                     else
                     {
                         player.jump();
-                        AudioManager::getInstance().playJump(); // <--- پخش صدای پرش عادی
+                        AudioManager::getInstance().playJump(); 
                     }
                     break;
                 }
@@ -170,9 +249,10 @@ float WorldManager::update(Player &player, float deltaTime)
     }
 
     float scrollAmount = 0.f;
+    
+    // اسکرول صفحه
     if (player.getPosition().y < 400.f)
     {
-        // Scroll the level up when the player reaches the upper region.
         float diff = 400.f - player.getPosition().y;
         scrollAmount = diff;
 
@@ -181,8 +261,9 @@ float WorldManager::update(Player &player, float deltaTime)
         player.setPosition(pPos);
 
         std::uniform_real_distribution<float> disY(75.f, 95.f);
-
         float minY = std::numeric_limits<float>::max();
+
+        // اسکرول پلتفرم‌ها
         for (auto &plat : platforms)
         {
             sf::Vector2f pos = plat.getPosition();
@@ -192,16 +273,21 @@ float WorldManager::update(Player &player, float deltaTime)
             plat.update(deltaTime, 500.f);
         }
 
-        // محاسبه ضریب سرعت
-        float speedMultiplier = 1.0f;
-        if (difficulty == Difficulty::Medium) {
-        speedMultiplier = 2.0f; // سرعت دو برابر (۱۶۰)
-        } else if (difficulty == Difficulty::Hard) {
-        speedMultiplier = 3.0f; // سرعت سه برابر (۲۴۰)
+        // اسکرول هیولاها
+        for (auto &mon : monsters) {
+            sf::Vector2f pos = mon.getPosition();
+            pos.y += diff;
+            mon.setPosition(pos);
         }
 
+        float speedMultiplier = 1.0f;
+        if (difficulty == Difficulty::Medium) {
+            speedMultiplier = 2.0f; 
+        } else if (difficulty == Difficulty::Hard) {
+            speedMultiplier = 3.0f; 
+        }
         
-        // Recycle platforms that fall below the bottom of the screen.
+        // بازیافت پلتفرم‌های خارج شده از پایین صفحه
         for (auto &plat : platforms)
         {
             if (plat.getPosition().y > 800.f)
@@ -223,21 +309,32 @@ float WorldManager::update(Player &player, float deltaTime)
                 sf::Texture &springTex = textureManager.get("spring");
                 bool hasSpring = chooseHasSpring(gen, type);
                 plat.reset(texture, type, sf::Vector2f(nextX, newY), &springTex, hasSpring);
-                // <--- اضافه کردن این خط برای اعمال سرعت روی سکوهای جدیدی که از بالا وارد می‌شوند
                 plat.setSpeedMultiplier(speedMultiplier);
                 minY = newY;
+                
+                spawnMonsterNearPlatform(plat, 500.f);
             }
         }
     }
     else
     {
-        // Update all platforms when the player is not triggering level scroll.
+        // آپدیت پلتفرم‌های متحرک در حالت عادی
         for (auto &plat : platforms)
         {
             plat.update(deltaTime, 500.f);
         }
     }
 
+    // حذف هیولاهای مرده یا خارج شده از پایین صفحه
+    for (auto it = monsters.begin(); it != monsters.end();) {
+        if (!it->isActive() || it->getPosition().y > 900.f) {
+            it = monsters.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    previousPlayerBottom = player.getBounds().top + player.getBounds().height;
     return scrollAmount;
 }
 
@@ -246,5 +343,11 @@ void WorldManager::draw(sf::RenderWindow &window)
     for (auto &plat : platforms)
     {
         plat.draw(window);
+    }
+
+    for (auto &mon : monsters) {
+        if (mon.isActive()) {
+            mon.draw(window);
+        }
     }
 }

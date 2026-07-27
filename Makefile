@@ -3,7 +3,6 @@
 # =====================
 ifeq ($(OS),Windows_NT)
 
-
     SHELL = cmd.exe
     CXX = g++
     SFML_DIR = SFML
@@ -20,15 +19,19 @@ ifeq ($(OS),Windows_NT)
 else
 
     CXX = c++
-    SFML_PKG_CONFIG_PATH =
-    ifneq ($(wildcard /opt/homebrew/opt/sfml@2/lib/pkgconfig),)
-        SFML_PKG_CONFIG_PATH = /opt/homebrew/opt/sfml@2/lib/pkgconfig
-    else ifneq ($(wildcard /usr/local/opt/sfml@2/lib/pkgconfig),)
-        SFML_PKG_CONFIG_PATH = /usr/local/opt/sfml@2/lib/pkgconfig
-    endif
-    SFML_CFLAGS = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --cflags sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
-    SFML_LIBS   = $(shell PKG_CONFIG_PATH="$(SFML_PKG_CONFIG_PATH)" pkg-config --libs sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
     
+    # مسیر اختصاصی sfml@2 در هوم‌بریو
+    SFML_2_PKG = /opt/homebrew/opt/sfml@2/lib/pkgconfig
+    
+    SFML_CFLAGS = $(shell PKG_CONFIG_PATH="$(SFML_2_PKG)" pkg-config --cflags sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
+    SFML_LIBS   = $(shell PKG_CONFIG_PATH="$(SFML_2_PKG)" pkg-config --libs sfml-graphics sfml-window sfml-system sfml-audio 2>/dev/null)
+    
+    # پشتیبان در صورت عدم شناسایی توسط pkg-config
+    ifeq ($(strip $(SFML_CFLAGS)),)
+        SFML_CFLAGS = -I/opt/homebrew/opt/sfml@2/include
+        SFML_LIBS   = -L/opt/homebrew/opt/sfml@2/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+    endif
+
     INCFLAGS = -Iinclude $(SFML_CFLAGS)
     LDFLAGS = 
     LIBFLAGS = $(SFML_LIBS)
