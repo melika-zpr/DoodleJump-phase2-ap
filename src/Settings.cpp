@@ -3,16 +3,14 @@
 #include <algorithm>
 
 Settings::Settings() : volume(50), difficulty(Difficulty::Medium) {
-    load(); // هنگام ساخته شدن شیء، مستقیماً داده‌ها را از فایل می‌خواند
+    load(); 
 }
 
 void Settings::load() {
     std::ifstream file(filename);
     if (file.is_open()) {
         int diffInt;
-        // خواندن ولوم و درجه سختی از فایل
         if (file >> volume >> diffInt) {
-            // اطمینان از اینکه مقادیر در بازه مجاز هستند
             volume = std::clamp(volume, 0, 100);
             if (diffInt >= 0 && diffInt <= 2) {
                 difficulty = static_cast<Difficulty>(diffInt);
@@ -25,7 +23,6 @@ void Settings::load() {
 void Settings::save() const {
     std::ofstream file(filename);
     if (file.is_open()) {
-        // ذخیره به فرمت: [Volume] [Difficulty]
         file << volume << " " << static_cast<int>(difficulty) << "\n";
         file.close();
     }

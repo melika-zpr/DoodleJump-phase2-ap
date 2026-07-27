@@ -12,7 +12,7 @@ WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff
     difficulty(diff),
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    totalScrolledDistance(0.f) // مقداردهی اولیه مسافت
+    totalScrolledDistance(0.f) 
 {
     monsterTex1 = &texMgr.get("monster1");
     monsterTex2 = &texMgr.get("monster2");
@@ -20,7 +20,6 @@ WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff
     holeSmallTex = &texMgr.get("hole");
     holeLargeTex = &texMgr.get("hole_large");
 
-    // Initialize the world with safe starting platform positions.
     spawnInitialPlatforms();
 }
 
@@ -44,7 +43,6 @@ void WorldManager::spawnMonsterNearPlatform(const Platform& platform, float wind
         return; 
     }
 
-    // مقدار سلامتی اولیه بر اساس سطح دشواری (مطابق مستندات فاز دوم)
     int health = 1;
     if (difficulty == Difficulty::Medium) health = 2;
     else if (difficulty == Difficulty::Hard) health = 3;
@@ -216,7 +214,6 @@ float WorldManager::update(Player &player, float deltaTime)
 {
     if (gameOver) return 0.f;
 
-    // ۱. به‌روزرسانی و بررسی برخورد گلوله‌ها با هیولاها
     updateBullets(deltaTime);
 
     for (auto& mon : monsters) {
@@ -230,7 +227,6 @@ float WorldManager::update(Player &player, float deltaTime)
     sf::FloatRect playerBounds = player.getBounds();
     float playerBottom = playerBounds.top + playerBounds.height;
 
-    // ۲. بررسی برخورد بازیکن با هیولاها
     for (auto& mon : monsters) {
             if (!mon.isActive()) continue;
             
@@ -238,10 +234,6 @@ float WorldManager::update(Player &player, float deltaTime)
             if (playerBounds.intersects(monBounds)) {
                 bool fallingDown = player.getVelocity().y > 0.f;
                 
-                // شرط دقیق‌تر برای فرود آمدن از بالا روی سر هیولا:
-                // ۱. بازیکن در حال سقوط به پایین باشد (velocity.y > 0)
-                // ۲. لبه پایینی بازیکن در فریم قبلی یا فعلی بالاتر یا بسیار نزدیک به لبه بالایی هیولا باشد
-                // ۳. هم‌پوشانی افقی کافی وجود داشته باشد تا برخورد واقعاً از پهلو محسوب نشود
                 float playerCenter = playerBounds.left + playerBounds.width / 2.f;
                 bool isAboveMonster = previousPlayerBottom <= monBounds.top + 12.f;
                 bool isHorizontallyAligned = (playerCenter >= monBounds.left - 5.f) && (playerCenter <= monBounds.left + monBounds.width + 5.f);
@@ -249,10 +241,9 @@ float WorldManager::update(Player &player, float deltaTime)
                 if (fallingDown && isAboveMonster && isHorizontallyAligned) {
                     player.springJump(); 
                     AudioManager::getInstance().playJump();
-                    mon.setActive(false); // نابودی هیولا با پرش از بالا
+                    mon.setActive(false); 
                     break;
                 } else {
-                    // برخورد از پهلو، زیر یا زوایای دیگر -> باخت فوری
                     gameOver = true;
                     AudioManager::getInstance().playGameOver();
                     return 0.f;
@@ -383,7 +374,6 @@ float WorldManager::update(Player &player, float deltaTime)
         totalScrolledDistance += scrollAmount;
     }
 
-    // پاکسازی هیولاهای مرده یا خارج شده از صفحه
     for (auto it = monsters.begin(); it != monsters.end();) {
         if (!it->isActive() || it->getPosition().y > 900.f) {
             it = monsters.erase(it);
@@ -400,7 +390,6 @@ float WorldManager::update(Player &player, float deltaTime)
         }
     }
 
-    // ذخیره موقعیت پایینی بازیکن برای استفاده در فریم بعدی
     previousPlayerBottom = player.getBounds().top + player.getBounds().height;
     return scrollAmount;
 }
@@ -424,7 +413,6 @@ void WorldManager::draw(sf::RenderWindow &window)
         }
     }
 
-    // رسم گلوله‌ها روی صفحه
     renderBullets(window);
 }
 
@@ -480,16 +468,13 @@ void WorldManager::updateBullets(float deltaTime) {
         bullet.update(deltaTime);
 
         for (auto& monster : monsters) {
-            // بررسی برخورد گلوله فعال با هیولای فعال
             if (monster.isActive() && bullet.getBounds().intersects(monster.getBounds())) {
-                bullet.setActive(false); // غیرفعال کردن گلوله
-                monster.takeDamage(1);   // کاهش یک واحد از جان هیولا (طبق مستندات)
-                break;
+                bullet.setActive(false);
+                monster.takeDamage(1);  
             }
         }
     }
 
-    // پاکسازی گلوله‌های غیرفعال یا خارج شده از صفحه
     bullets.erase(
         std::remove_if(bullets.begin(), bullets.end(), [](const Bullet& b) { return !b.isActive(); }),
         bullets.end()

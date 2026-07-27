@@ -8,7 +8,6 @@ AudioManager& AudioManager::getInstance() {
 }
 
 void AudioManager::init() {
-    // لود کردن بافرها با استفاده از کلاس جنریک شما
     soundManager.load("jump", "sounds/Jumping_Sound.wav");
     soundManager.load("shoot", "sounds/Shooting_Sound.wav");
     soundManager.load("gameover", "sounds/Loosing_Sound.wav");

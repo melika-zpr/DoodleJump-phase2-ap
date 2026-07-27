@@ -11,7 +11,6 @@ private:
     sf::Vector2f position;
     sf::Vector2f velocity;
 
-    // پوینتر برای نگهداری آدرس دو تصویر بدون کپی کردن اضافی در حافظه
     sf::Texture* texLeft;
     sf::Texture* texRight;
     sf::Texture* texShootBody;   

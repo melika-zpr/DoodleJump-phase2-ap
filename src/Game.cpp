@@ -12,7 +12,6 @@ Game::Game()
 
     try
     {
-        // Load the stored high score first so the menu displays the correct value.
         loadHighScore();
 
         textureManager.load("background", "assets/background.png");
@@ -435,7 +434,6 @@ void Game::processEvents()
 
 void Game::update(float deltaTime)
 {
-    // مدیریت حالت مکش توسط سیاه‌چاله
     if (gameState == GameState::HoleSuction && player)
     {
         bool suctionFinished = false;
@@ -461,7 +459,6 @@ void Game::update(float deltaTime)
         return;
     }
 
-    // بررسی شلیک پیوسته با نگه‌داشتن کلید Space و نرخ آتش وابسته به دشواری
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
     {
         player->triggerShoot();
@@ -474,7 +471,6 @@ void Game::update(float deltaTime)
             shootPos.y -= 10.f; 
             worldManager->spawnBullet(shootPos);
 
-            // نرخ آتش: در حالت آسان سریع‌تر و در متوسط/سخت کندتر
             if (gameSettings.getDifficulty() == Difficulty::Easy)
             {
                 shootCooldown = 0.25f; 
@@ -492,7 +488,6 @@ void Game::update(float deltaTime)
 
     player->update(deltaTime, 500.f);
 
-    // بررسی برخورد با سیاه‌چاله
     if (worldManager->checkHoleCollision(*player, holeCenterForSuction))
     {
         gameState = GameState::HoleSuction;
@@ -515,14 +510,12 @@ void Game::update(float deltaTime)
             return;
     }
 
-    // --- اضافه شدن این بخش: بررسی باخت فوری بر اثر برخورد با مانستر ---
     if (worldManager->isGameOver()) 
     {
         if (gameState != GameState::GameOver)
         { 
             gameState = GameState::GameOver;
             
-            // تنظیم جایگاه متن‌های امتیاز برای وسط صفحه در زمان باخت
             sf::FloatRect scoreBounds = scoreText.getLocalBounds();
             scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
             scoreText.setPosition(window.getSize().x / 2.f, 250.f);
@@ -531,10 +524,9 @@ void Game::update(float deltaTime)
             highScoreText.setOrigin(hsBounds.width / 2.f, hsBounds.height / 2.f);
             highScoreText.setPosition(window.getSize().x / 2.f, 290.f);
         }
-        return; // توقف ادامه آپدیت برای جلوگیری از باگ‌های احتمالی
+        return; 
     }
 
-    // Increase score only when the world scrolls upward.
     if (scrollAmount > 0.f)
     {
         score += static_cast<int>(scrollAmount);

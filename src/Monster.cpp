@@ -1,7 +1,6 @@
 #include "Monster.hpp"
 #include <cstdlib>
 
-// سازنده اول
 Monster::Monster(sf::Texture &texture, float startX, float startY, int health)
     : hp(health), active(true)
 {
@@ -22,16 +21,13 @@ Monster::Monster(sf::Texture &tex1, sf::Texture &tex2, sf::Vector2f pos, int hea
 {
     speed = baseSpeed;
 
-    // انتخاب تصادفی با شانس ۵۰-۵۰ بین هیولای سبز (tex1) و آبی (tex2)
     if (rand() % 2 == 0) {
-        // --- حالت هیولای سبز (معمولی - بدون نصف شدن) ---
         isSplitMonster = false;
         sprite.setTexture(tex1);
         
         sf::FloatRect bounds = sprite.getLocalBounds();
         sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
     } else {
-        // --- حالت هیولای آبی (دوتکه) ---
         isSplitMonster = true;
         sprite.setTexture(tex2);
         
@@ -39,14 +35,12 @@ Monster::Monster(sf::Texture &tex1, sf::Texture &tex2, sf::Vector2f pos, int hea
         int frameWidth = texSize.x / 2;
         int frameHeight = texSize.y;
 
-        // تنظیم کادر عکس بر اساس جهت حرکت اولیه (چون baseSpeed معمولا مثبته، اینجا چک میکنیم)
         if (speed >= 0) {
             sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight)); // حرکت به راست
         } else {
             sprite.setTextureRect(sf::IntRect(frameWidth, 0, frameWidth, frameHeight)); // حرکت به چپ
         }
 
-        // تنظیم Origin برای نصف عکس
         sf::FloatRect bounds = sprite.getLocalBounds();
         sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
     }
@@ -60,12 +54,10 @@ void Monster::update(float deltaTime, float screenWidth)
 
     sf::FloatRect bounds = sprite.getGlobalBounds();
     
-    // برخورد به دیوار سمت چپ
     if (bounds.left <= 0.f) {
         sprite.setPosition(bounds.width / 2.f, sprite.getPosition().y);
-        speed = std::abs(speed); // تغییر جهت به سمت راست
+        speed = std::abs(speed); 
         
-        // فقط اگر هیولا از نوع دوتکه بود عکسش رو عوض کن
         if (isSplitMonster) {
             int frameWidth = sprite.getTextureRect().width;
             int frameHeight = sprite.getTextureRect().height;
@@ -73,12 +65,10 @@ void Monster::update(float deltaTime, float screenWidth)
         }
         
     } 
-    // برخورد به دیوار سمت راست
     else if (bounds.left + bounds.width >= screenWidth) {
         sprite.setPosition(screenWidth - bounds.width / 2.f, sprite.getPosition().y);
-        speed = -std::abs(speed); // تغییر جهت به سمت چپ
+        speed = -std::abs(speed); 
         
-        // فقط اگر هیولا از نوع دوتکه بود عکسش رو عوض کن
         if (isSplitMonster) {
             int frameWidth = sprite.getTextureRect().width;
             int frameHeight = sprite.getTextureRect().height;
@@ -120,7 +110,6 @@ bool Monster::isOffScreen() const
     return sprite.getPosition().y > 900.f;
 }
 
-// پیاده‌سازی متدهای جدید و گمشده
 void Monster::setSpeedMultiplier(float multiplier)
 {
     speed = baseSpeed * multiplier;

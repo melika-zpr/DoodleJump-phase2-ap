@@ -13,15 +13,12 @@ private:
     sf::Sound shootSound;
     sf::Sound gameOverSound;
 
-    // سازنده خصوصی (Private) برای الگوی Singleton
     AudioManager(); 
 
 public:
-    // جلوگیری از کپی شدن کلاس
     AudioManager(const AudioManager&) = delete;
     AudioManager& operator=(const AudioManager&) = delete;
 
-    // دسترسی سراسری به تنها نمونه موجود از این کلاس
     static AudioManager& getInstance();
 
     void init(); 

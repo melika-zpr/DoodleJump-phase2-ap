@@ -14,7 +14,6 @@ Hole::Hole(sf::Texture& smallTex, sf::Texture& largeTex, sf::Vector2f pos, bool 
 }
 
 void Hole::update(float deltaTime) {
-    // سیاه‌چاله‌ها عناصر ثابت محیطی هستند
 }
 
 void Hole::draw(sf::RenderWindow& window) const {
