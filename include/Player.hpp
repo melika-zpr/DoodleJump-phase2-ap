@@ -6,12 +6,18 @@
 class Player {
 private:
     sf::Sprite sprite;
+    sf::Sprite snoutSprite; 
+
     sf::Vector2f position;
     sf::Vector2f velocity;
 
     // پوینتر برای نگهداری آدرس دو تصویر بدون کپی کردن اضافی در حافظه
     sf::Texture* texLeft;
     sf::Texture* texRight;
+    sf::Texture* texShootBody;   
+    sf::Texture* texSnout;      
+    bool isFacingLeft;
+    float shootTimer;
     
     int score;
     float movementSpeed;
@@ -19,16 +25,18 @@ private:
     float jumpForce;
 
 public:
-    // سازنده حالا دو تصویر (چپ و راست) دریافت می‌کند
-    Player(sf::Texture& textureLeft, sf::Texture& textureRight);
+
+    Player(sf::Texture& textureLeft, sf::Texture& textureRight, 
+        sf::Texture& textureShootBody, sf::Texture& textureSnout);
 
     void handleInput();
     void update(float deltaTime, float windowWidth);
     void draw(sf::RenderWindow& window);
     void jump();
     void springJump();
+
+    void triggerShoot();
     
-    // دکمه‌های دسترسی (Getters / Setters)
     sf::Vector2f getPosition() const;
     sf::Vector2f getVelocity() const;
     void setVelocity(sf::Vector2f vel);

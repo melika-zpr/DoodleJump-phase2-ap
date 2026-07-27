@@ -1,10 +1,15 @@
 #include "Player.hpp"
 
-Player::Player(sf::Texture &textureLeft, sf::Texture &textureRight)
+Player::Player(sf::Texture &textureLeft, sf::Texture &textureRight,
+               sf::Texture &textureShootBody, sf::Texture &textureSnout)
+    : isFacingLeft(false), shootTimer(0.f)
 {
+
     // Store texture references for left and right facing sprites.
     texLeft = &textureLeft;
     texRight = &textureRight;
+    texShootBody = &textureShootBody;
+    texSnout = &textureSnout;
 
     // Start with the right-facing texture by default.
     sprite.setTexture(*texRight);
@@ -15,6 +20,11 @@ Player::Player(sf::Texture &textureLeft, sf::Texture &textureRight)
     // Center the sprite origin for more accurate movement and collision.
     sf::FloatRect bounds = sprite.getLocalBounds();
     sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
+
+    snoutSprite.setTexture(*texSnout);
+    snoutSprite.setScale(0.6f, 0.6f);
+    sf::FloatRect snoutBounds = snoutSprite.getLocalBounds();
+    snoutSprite.setOrigin(snoutBounds.width / 2.f, snoutBounds.height / 2.f);
 
     // Initial spawn position and zero velocity.
     position = sf::Vector2f(250.f, 400.f);
@@ -36,18 +46,15 @@ void Player::handleInput()
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
     {
         velocity.x = -movementSpeed;
-        sprite.setTexture(*texLeft); // Switch sprite to left-facing texture.
+        // sprite.setTexture(*texLeft); // Switch sprite to left-facing texture.
+        isFacingLeft = true;
     }
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
     {
         velocity.x = movementSpeed;
-        sprite.setTexture(*texRight); // Switch sprite to right-facing texture.
+        // sprite.setTexture(*texRight); // Switch sprite to right-facing texture.
+        isFacingLeft = false;
     }
-
-    // Manual jump input is disabled because jumps happen on platform collision.
-    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && velocity.y > 0.f) {
-    //     jump();
-    // }
 }
 
 void Player::update(float deltaTime, float windowWidth)
@@ -67,12 +74,61 @@ void Player::update(float deltaTime, float windowWidth)
         position.x = 0.f;
     }
 
+    if (shootTimer > 0.f)
+    {
+        shootTimer -= deltaTime;
+        if (shootTimer < 0.f)
+        {
+            shootTimer = 0.f;
+        }
+    }
+
+    // تغییر تصویر بر اساس وضعیت شلیک
+    if (shootTimer > 0.f)
+    {
+        sprite.setTexture(*texShootBody, true);
+        sprite.setScale(1.1f, 1.1f); // <--- اسکیل بدنه در زمان شلیک (بزرگتر شد)
+    }
+    else
+    {
+        sprite.setTexture(isFacingLeft ? *texLeft : *texRight, true);
+        sprite.setScale(0.6f, 0.6f); // <--- اسکیل عادی در حالت پرش
+    }
+
+    // بازتنظیم مجدد Origin در مرکز متناسب با ابعاد تکسچر فعال
+    sf::FloatRect bounds = sprite.getLocalBounds();
+    sprite.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
+
     sprite.setPosition(position);
+}
+
+void Player::triggerShoot()
+{
+    shootTimer = 0.2f; // فعال ماندن انیمیشن به مدت ۰.۲ ثانیه
 }
 
 void Player::draw(sf::RenderWindow &window)
 {
     window.draw(sprite);
+
+    // رسم و تنظیم موقعیت بینی دقیقا روی بالای بدنه
+    if (shootTimer > 0.f)
+    {
+        sf::FloatRect snoutBounds = snoutSprite.getLocalBounds();
+        snoutSprite.setOrigin(snoutBounds.width / 2.f, snoutBounds.height / 2.f);
+        snoutSprite.setScale(0.6f, 0.6f);
+
+        // محاسبه لبه بالایی بدنه به صورت پویا
+        sf::FloatRect bodyBounds = sprite.getGlobalBounds();
+
+        float snoutX = position.x;
+        // اتصال بینی به لبه بالای بدنه با اندکی هم‌پوشانی (۶ پیکسل) جهت یکپارچگی کامل
+        float snoutY = position.y - (bodyBounds.height / 2.f) + 40.f;
+
+        snoutSprite.setPosition(snoutX, snoutY);
+
+        window.draw(snoutSprite);
+    }
 }
 
 void Player::jump() { velocity.y = jumpForce; }

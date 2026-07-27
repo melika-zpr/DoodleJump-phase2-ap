@@ -19,6 +19,8 @@ Game::Game()
 
         textureManager.load("player_left", "assets/left_doodle.png");
         textureManager.load("player_right", "assets/right_doodle.png");
+        textureManager.load("player_shoot_body", "assets/Shooting@Pose.png");
+        textureManager.load("snout", "assets/Nose.png");
         textureManager.load("platform", "assets/normal_platform.png");
         textureManager.load("platform_broken", "assets/broken_platform.png");
         textureManager.load("platform_moving", "assets/moving_platform.png");
@@ -299,8 +301,10 @@ void Game::resetGame()
     score = 0;
     sf::Texture &texLeft = textureManager.get("player_left");
     sf::Texture &texRight = textureManager.get("player_right");
+    sf::Texture &texShootBody = textureManager.get("player_shoot_body");
+    sf::Texture &texSnout = textureManager.get("snout");
 
-    player = std::make_unique<Player>(texLeft, texRight);
+    player = std::make_unique<Player>(texLeft, texRight, texShootBody, texSnout);
     worldManager = std::make_unique<WorldManager>(textureManager, gameSettings.getDifficulty());
     updateOverlayTexts();
 }
@@ -426,6 +430,7 @@ void Game::processEvents()
             }
             else if (event.key.code == sf::Keyboard::Space && gameState == GameState::Playing)
             {
+                player->triggerShoot();
                 // گرفتن موقعیت بازیکن برای نقطه شروع شلیک
                 sf::Vector2f shootPos = player->getPosition();
                 
@@ -434,6 +439,7 @@ void Game::processEvents()
                 
                 // فراخوانی تابع اسپاون گلوله
                 worldManager->spawnBullet(shootPos);
+                
             }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
             {

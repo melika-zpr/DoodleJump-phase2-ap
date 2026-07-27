@@ -8,9 +8,9 @@
 WorldManager::WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff)
     : textureManager(texMgr), 
     gen(std::random_device{}()), 
+    difficulty(diff),
     lastPlatformX(200.f), 
     lastPlatformType(Platform::PlatformType::Normal),
-    difficulty(diff),
     totalScrolledDistance(0.f) // مقداردهی اولیه مسافت 
     {
     // Initialize the world with safe starting platform positions.
