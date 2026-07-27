@@ -44,6 +44,7 @@ public:
     int getScore() const;
 
     void setPosition(sf::Vector2f pos);
+    void updateSuction(sf::Vector2f targetPos, float deltaTime, bool& finished);
 };
 
 #endif

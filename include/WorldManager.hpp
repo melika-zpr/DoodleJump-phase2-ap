@@ -9,6 +9,7 @@
 #include "ResourceManager.hpp"
 #include "Settings.hpp"
 #include "Monster.hpp"
+#include "Hole.hpp"
 
 class WorldManager
 {
@@ -17,13 +18,16 @@ private:
     std::vector<Monster> monsters;
     sf::Texture* monsterTex1;
     sf::Texture* monsterTex2;
+    std::vector<Hole> holes;
+    sf::Texture* holeSmallTex;
+    sf::Texture* holeLargeTex;
     bool gameOver = false;
     float previousPlayerBottom = 0.f;
 
     // Helper functions
     void spawnMonsterNearPlatform(const Platform& platform, float windowWidth);
     bool isPositionOverlappingWithAnyObject(sf::Vector2f pos, float width, float height) const;
-
+    void spawnHoleNearPlatform(const Platform& platform, float windowWidth);
     float getSpeedMultiplier() const;
 
 
@@ -44,7 +48,7 @@ public:
     bool isGameOver() const { return gameOver; }
     WorldManager(ResourceManager<sf::Texture> &texMgr, Difficulty diff);
     void spawnInitialPlatforms();
-
+    bool checkHoleCollision(Player& player, sf::Vector2f& outHoleCenter);
     // بازیکن به عنوان ورودی داده می‌شود تا برخوردها و دوربین محاسبه شود
     float update(Player &player, float deltaTime);
     void draw(sf::RenderWindow &window);

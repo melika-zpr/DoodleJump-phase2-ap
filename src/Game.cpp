@@ -31,6 +31,9 @@ Game::Game()
         textureManager.load("button_settings", "assets/Settings_button.png");
         textureManager.load("monster1", "assets/green_monster.png");
         textureManager.load("monster2", "assets/BlueMonster.png");
+        textureManager.load("hole", "assets/hole.png");
+        textureManager.load("hole_large", "assets/hole@2x.png");
+        
         isDraggingSlider = false;
         textureManager.load("button_back", "assets/back_button.png");
 
@@ -49,7 +52,6 @@ Game::Game()
 
 void Game::run()
 {
-    // Main game loop: handle events, update state, and render continuously.
     while (window.isOpen())
     {
         float deltaTime = clock.restart().asSeconds();
@@ -116,16 +118,11 @@ void Game::setupUi()
         menuButton.setFillColor(sf::Color::White);
     }
 
-    // --- تنظیم ابعاد ثابت و چینش دکمه‌های صفحه منو ---
-    sf::Texture &startTexture = textureManager.get("button_start");
-    startButton.setTexture(&startTexture);
-    // استفاده از سایز ثابت به جای سایز عکس برای جلوگیری از بزرگ شدن بیش از حد
     startButton.setSize(sf::Vector2f(220.f, 70.f));
     startButton.setPosition((window.getSize().x - startButton.getSize().x) / 2.f, 250.f);
 
     sf::Texture &settingsTex = textureManager.get("button_settings");
     settingsMenuButton.setTexture(&settingsTex);
-    // سایز ثابت برای دکمه ستینگ
     settingsMenuButton.setSize(sf::Vector2f(220.f, 70.f));
     settingsMenuButton.setPosition((window.getSize().x - settingsMenuButton.getSize().x) / 2.f, 340.f);
 
@@ -139,47 +136,34 @@ void Game::setupUi()
     menuButton.setSize(sf::Vector2f(220.f, 70.f));
     menuButton.setPosition((window.getSize().x - menuButton.getSize().x) / 2.f, 500.f);
 
-    // --- تنظیم موقعیت متن‌های صفحه منو ---
     titleText.setPosition(window.getSize().x / 2.f, 100.f);
     menuHighScoreText.setPosition(window.getSize().x / 2.f, 170.f);
 
-    // دریافت درجه سختی ذخیره شده برای نمایش اولیه صحیح
     std::string diffStr;
     switch (gameSettings.getDifficulty())
     {
-    case Difficulty::Easy:
-        diffStr = "EASY";
-        break;
-    case Difficulty::Medium:
-        diffStr = "MEDIUM";
-        break;
-    case Difficulty::Hard:
-        diffStr = "HARD";
-        break;
+    case Difficulty::Easy: diffStr = "EASY"; break;
+    case Difficulty::Medium: diffStr = "MEDIUM"; break;
+    case Difficulty::Hard: diffStr = "HARD"; break;
     }
 
-    // راه‌اندازی و موقعیت‌دهی متن Mode با توجه به تنظیمات ذخیره شده
     setupText(modeText, "Mode: " + diffStr, 16, sf::Color(17, 52, 84));
     modeText.setPosition(window.getSize().x / 2.f, 430.f);
 
-    // تغییر و موقعیت‌دهی متن دستورالعمل‌ها (ادغام شده)
     instructionText.setString("Use Left / Right arrows to move\nHold Space to shoot the monsters");
     sf::FloatRect instBounds = instructionText.getLocalBounds();
     instructionText.setOrigin(instBounds.width / 2.f, instBounds.height / 2.f);
     instructionText.setPosition(window.getSize().x / 2.f, 500.f);
 
-    // --- موقعیت متن‌های بازی و باخت (بدون تغییر) ---
     gameOverText.setPosition(window.getSize().x / 2.f, 180.f);
     scoreText.setOrigin(0.f, 0.f);
     scoreText.setPosition(20.f, 20.f);
     highScoreText.setOrigin(0.f, 0.f);
     highScoreText.setPosition(20.f, 50.f);
 
-    // رنگ‌های اصلی رابط کاربری
     sf::Color darkBlue(17, 52, 84);
     sf::Color lightBlue(220, 230, 235);
 
-    // متن‌های ثابت صفحه تنظیمات
     setupText(settingsTitleText, "SETTINGS", 36, darkBlue);
     settingsTitleText.setPosition(window.getSize().x / 2.f, 100.f);
 
@@ -191,18 +175,16 @@ void Game::setupUi()
 
     setupText(volumeValueText, "0%", 16, darkBlue);
 
-    // ساخت نوار صدا (Slider)
     sliderTrack.setSize(sf::Vector2f(300.f, 6.f));
     sliderTrack.setFillColor(sf::Color(180, 180, 180));
     sliderTrack.setOrigin(0.f, 3.f);
-    sliderTrack.setPosition(100.f, 240.f); // بازه حرکت از x=100 تا x=400
+    sliderTrack.setPosition(100.f, 240.f);
 
     sliderHandle.setRadius(10.f);
     sliderHandle.setFillColor(darkBlue);
     sliderHandle.setOrigin(10.f, 10.f);
-    sliderHandle.setPosition(100.f, 240.f); // موقعیت y ثابت، x متغیر است
+    sliderHandle.setPosition(100.f, 240.f);
 
-    // تنظیمات مشترک دکمه‌های سطح سختی
     auto setupDifficultyButton = [&](sf::RectangleShape &btn, sf::Text &txt, const std::string &str, float posX)
     {
         btn.setSize(sf::Vector2f(90.f, 40.f));
@@ -224,20 +206,16 @@ void Game::setupUi()
     setupDifficultyButton(mediumButton, mediumText, "MEDIUM", 250.f);
     setupDifficultyButton(hardButton, hardText, "HARD", 380.f);
 
-    // ساخت دکمه برگشت با استفاده از تصویر تکسچر و سایز ثابت
     sf::Texture &backTex = textureManager.get("button_back");
     backButton.setTexture(&backTex);
-    // استفاده از سایز ثابت برای جلوگیری از اشغال شدن نصف صفحه!
     backButton.setSize(sf::Vector2f(200.f, 65.f));
     backButton.setFillColor(sf::Color::White);
     backButton.setOrigin(backButton.getSize().x / 2.f, backButton.getSize().y / 2.f);
     backButton.setPosition(window.getSize().x / 2.f, 650.f);
 
-    // ساخت لایه سفید مات برای صفحه Game Over
     gameOverOverlay.setSize(sf::Vector2f(window.getSize().x, window.getSize().y));
-    gameOverOverlay.setFillColor(sf::Color(255, 255, 255, 210)); // رنگ سفید با مقداری شفافیت (آلفا = 210)
+    gameOverOverlay.setFillColor(sf::Color(255, 255, 255, 210));
 
-    // اعمال مقادیر اولیه (از تنظیمات خوانده شده) روی رابط کاربری
     updateSettingsUi();
 }
 
@@ -246,7 +224,6 @@ void Game::updateSettingsUi()
     sf::Color darkBlue(17, 52, 84);
     sf::Color lightBlue(220, 230, 235);
 
-    // ریست کردن رنگ همه دکمه‌ها
     easyButton.setFillColor(lightBlue);
     mediumButton.setFillColor(lightBlue);
     hardButton.setFillColor(lightBlue);
@@ -254,8 +231,7 @@ void Game::updateSettingsUi()
     mediumText.setFillColor(darkBlue);
     hardText.setFillColor(darkBlue);
 
-    // اعمال رنگ تیره به دکمه انتخاب شده
-    Difficulty currentDiff = gameSettings.getDifficulty(); // این متد را در مرحله قبل ساختید
+    Difficulty currentDiff = gameSettings.getDifficulty();
     if (currentDiff == Difficulty::Easy)
     {
         easyButton.setFillColor(darkBlue);
@@ -272,12 +248,10 @@ void Game::updateSettingsUi()
         hardText.setFillColor(sf::Color::White);
     }
 
-    // تنظیم جایگاه دستگیره نوار صدا
     int vol = gameSettings.getVolume();
     float newX = 100.f + (vol / 100.f) * 300.f;
     sliderHandle.setPosition(newX, sliderHandle.getPosition().y);
 
-    // آپدیت متن درصد
     volumeValueText.setString(std::to_string(vol) + "%");
     sf::FloatRect bounds = volumeValueText.getLocalBounds();
     volumeValueText.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
@@ -286,7 +260,6 @@ void Game::updateSettingsUi()
 
 void Game::updateOverlayTexts()
 {
-// استخراج نام درجه سختی به شکل متن
     std::string diffStr;
     switch (gameSettings.getDifficulty())
     {
@@ -296,8 +269,6 @@ void Game::updateOverlayTexts()
     }
 
     scoreText.setString("SCORE: " + std::to_string(score));
-    
-    // اضافه کردن نام مود به رکوردها
     highScoreText.setString("HIGH SCORE (" + diffStr + "): " + std::to_string(highScore));
     menuHighScoreText.setString("HIGH SCORE (" + diffStr + "): " + std::to_string(highScore));
 
@@ -324,14 +295,10 @@ void Game::resetGame()
     player = std::make_unique<Player>(texLeft, texRight, texShootBody, texSnout);
     worldManager = std::make_unique<WorldManager>(textureManager, gameSettings.getDifficulty());
 
-    //worldManager->spawnInitialPlatforms();
-
-    // برگرداندن جایگاه متن‌ها به گوشه تصویر برای حالت بازی
     scoreText.setOrigin(0.f, 0.f);
     scoreText.setPosition(20.f, 20.f);
     highScoreText.setOrigin(0.f, 0.f);
     highScoreText.setPosition(20.f, 50.f);
-
 
     updateOverlayTexts();
 }
@@ -375,12 +342,10 @@ void Game::processEvents()
 
             if (gameState == GameState::Settings)
             {
-                // چک کردن کلیک روی نوار صدا یا دستگیره
                 if (sliderHandle.getGlobalBounds().contains(mousePosF) || sliderTrack.getGlobalBounds().contains(mousePosF))
                 {
                     isDraggingSlider = true;
                 }
-                // کلیک روی دکمه‌های سختی
                 else if (easyButton.getGlobalBounds().contains(mousePosF))
                 {
                     gameSettings.setDifficulty(Difficulty::Easy);
@@ -396,20 +361,18 @@ void Game::processEvents()
                     gameSettings.setDifficulty(Difficulty::Hard);
                     updateSettingsUi();
                 }
-                // کلیک روی دکمه برگشت
                 else if (backButton.getGlobalBounds().contains(mousePosF))
                 {
-                    gameSettings.save(); // ذخیره تنظیمات روی دیسک
-                    loadHighScore();     // آپدیت نمایش رکورد بر اساس سختی جدید
+                    gameSettings.save();
+                    loadHighScore();
                     updateOverlayTexts();
                     gameState = GameState::Menu;
                 }
             }
-            else // اگر در منو یا بازی هستیم
+            else
             {
                 handleButtonClick(mousePos);
 
-                // کلیک روی دکمه تنظیمات در منوی اصلی
                 if (gameState == GameState::Menu && settingsMenuButton.getGlobalBounds().contains(mousePosF))
                 {
                     gameState = GameState::Settings;
@@ -418,39 +381,34 @@ void Game::processEvents()
             }
         }
 
-        // --- پایان کشیدن موس (رها کردن کلیک) ---
         if (event.type == sf::Event::MouseButtonReleased && event.mouseButton.button == sf::Mouse::Left)
         {
             if (isDraggingSlider)
             {
                 isDraggingSlider = false;
-                gameSettings.save(); // ذخیره ولوم جدید بعد از رها کردن کلیک
+                gameSettings.save();
             }
         }
 
-        // --- حرکت موس برای نوار صدا ---
         if (event.type == sf::Event::MouseMoved && isDraggingSlider && gameState == GameState::Settings)
         {
             float mouseX = static_cast<float>(event.mouseMove.x);
-            // محدود کردن حرکت دستگیره روی خط (از 100 تا 400)
             mouseX = std::max(100.f, std::min(mouseX, 400.f));
             sliderHandle.setPosition(mouseX, sliderHandle.getPosition().y);
 
-            // محاسبه ولوم (0 تا 100) و ذخیره آن
             int newVolume = static_cast<int>(((mouseX - 100.f) / 300.f) * 100.f);
             gameSettings.setVolume(newVolume);
 
-            // آپدیت متن درصد زیر نوار
             volumeValueText.setString(std::to_string(newVolume) + "%");
             sf::FloatRect bounds = volumeValueText.getLocalBounds();
             volumeValueText.setOrigin(bounds.width / 2.f, bounds.height / 2.f);
 
-            updateAudioVolume(); // تغییر زنده صدای بازی هنگام کشیدن اسلایدر
+            updateAudioVolume();
         }
 
         if (event.type == sf::Event::KeyPressed)
         {
-            if ((event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Space) && gameState != GameState::Playing)
+            if ((event.key.code == sf::Keyboard::Enter || event.key.code == sf::Keyboard::Space) && gameState != GameState::Playing && gameState != GameState::HoleSuction)
             {
                 AudioManager::getInstance().stopMusic();
                 startGame();
@@ -458,15 +416,9 @@ void Game::processEvents()
             else if (event.key.code == sf::Keyboard::Space && gameState == GameState::Playing)
             {
                 player->triggerShoot();
-                // گرفتن موقعیت بازیکن برای نقطه شروع شلیک
                 sf::Vector2f shootPos = player->getPosition();
-                
-                // یک افست منفی روی محور Y می‌دهیم تا گلوله از بالای سر کاراکتر خارج شود
                 shootPos.y -= 20.f; 
-                
-                // فراخوانی تابع اسپاون گلوله
                 worldManager->spawnBullet(shootPos);
-                
             }
             else if (event.key.code == sf::Keyboard::R && gameState == GameState::GameOver)
             {
@@ -474,7 +426,6 @@ void Game::processEvents()
             }
             else if (event.key.code == sf::Keyboard::Escape && gameState == GameState::GameOver)
             {
-
                 AudioManager::getInstance().playMusic();
                 gameState = GameState::Menu;
             }
@@ -489,29 +440,55 @@ void Game::processEvents()
 
 void Game::update(float deltaTime)
 {
+    // مدیریت حالت مکش توسط سیاه‌چاله[cite: 10]
+    if (gameState == GameState::HoleSuction && player)
+    {
+        bool suctionFinished = false;
+        player->updateSuction(holeCenterForSuction, deltaTime, suctionFinished);
+        if (suctionFinished)
+        {
+            gameState = GameState::GameOver;
+            AudioManager::getInstance().playGameOver();
+
+            sf::FloatRect scoreBounds = scoreText.getLocalBounds();
+            scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
+            scoreText.setPosition(window.getSize().x / 2.f, 250.f);
+
+            sf::FloatRect hsBounds = highScoreText.getLocalBounds();
+            highScoreText.setOrigin(hsBounds.width / 2.f, hsBounds.height / 2.f);
+            highScoreText.setPosition(window.getSize().x / 2.f, 290.f);
+        }
+        return;
+    }
+
     if (gameState != GameState::Playing || !player || !worldManager)
     {
         return;
     }
 
-    // Update player physics and world scrolling.
     player->update(deltaTime, 500.f);
+
+    // بررسی برخورد با سیاه‌چاله[cite: 10]
+    if (worldManager->checkHoleCollision(*player, holeCenterForSuction))
+    {
+        gameState = GameState::HoleSuction;
+        return;
+    }
+
     float scrollAmount = worldManager->update(*player, deltaTime);
 
-    // Increase score only when the world scrolls upward.
     if (scrollAmount > 0.f)
     {
         score += static_cast<int>(scrollAmount);
         if (score > highScore)
         {
-            highScore = score; // <--- این خط کلیدی جا افتاده بود!
+            highScore = score;
             highScores[static_cast<int>(gameSettings.getDifficulty())] = highScore;
-            saveHighScore(); // Persist new record immediately.
+            saveHighScore();
         }
         updateOverlayTexts();
     }
 
-    // End the game if the player falls too far below the screen.
     if (player->getPosition().y > 900.f)
     {
         if (gameState != GameState::GameOver)
@@ -519,7 +496,6 @@ void Game::update(float deltaTime)
             gameState = GameState::GameOver;
             AudioManager::getInstance().playGameOver();
             
-            // تنظیم جایگاه متن‌های امتیاز برای وسط صفحه در زمان باخت
             sf::FloatRect scoreBounds = scoreText.getLocalBounds();
             scoreText.setOrigin(scoreBounds.width / 2.f, scoreBounds.height / 2.f);
             scoreText.setPosition(window.getSize().x / 2.f, 250.f);
@@ -533,7 +509,6 @@ void Game::update(float deltaTime)
 
 void Game::loadHighScore()
 {
-    // پیش‌فرض: صفر کردن همه امتیازها
     for (int i = 0; i < 3; ++i)
         highScores[i] = 0;
     highScore = 0;
@@ -541,11 +516,9 @@ void Game::loadHighScore()
     std::ifstream file(highScoreFilename);
     if (file.is_open())
     {
-        // خواندن سه عدد (آسان، متوسط، سخت)
         file >> highScores[0] >> highScores[1] >> highScores[2];
         file.close();
     }
-    // تنظیم highScore فعلی بر اساس درجه سختی انتخاب شده در تنظیمات
     highScore = highScores[static_cast<int>(gameSettings.getDifficulty())];
 }
 
@@ -554,18 +527,17 @@ void Game::saveHighScore() const
     std::ofstream file(highScoreFilename);
     if (file.is_open())
     {
-        // ذخیره سه عدد با فاصله
         file << highScores[0] << " " << highScores[1] << " " << highScores[2] << "\n";
         file.close();
     }
 }
 
 void Game::drawOverlay()
-{if (gameState == GameState::Menu)
+{
+    if (gameState == GameState::Menu)
     {
         window.draw(titleText);
         window.draw(menuHighScoreText);
-        // window.draw(subtitleText); <--- این خط حذف شد تا متن مزاحم گوشه تصویر پاک شود
         window.draw(startButton);
         window.draw(instructionText);
         window.draw(settingsMenuButton); 
@@ -588,16 +560,14 @@ void Game::drawOverlay()
 
         window.draw(backButton);
     }
-    else if (gameState == GameState::Playing)
+    else if (gameState == GameState::Playing || gameState == GameState::HoleSuction)
     {
         window.draw(scoreText);
         window.draw(highScoreText);
     }
     else if (gameState == GameState::GameOver)
     {
-        // رسم لایه مات‌کننده پیش از هر چیز دیگری در صفحه باخت
         window.draw(gameOverOverlay); 
-        
         window.draw(gameOverText);
         window.draw(scoreText);
         window.draw(highScoreText);
@@ -611,8 +581,7 @@ void Game::render()
     window.clear();
     window.draw(backgroundSprite);
 
-    // رسم بازیکن و پلتفرم‌ها فقط در صفحه بازی یا باخت انجام شود
-    if (gameState == GameState::Playing || gameState == GameState::GameOver)
+    if (gameState == GameState::Playing || gameState == GameState::HoleSuction || gameState == GameState::GameOver)
     {
         if (worldManager)
         {
